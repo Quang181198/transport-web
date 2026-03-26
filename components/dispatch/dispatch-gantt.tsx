@@ -826,6 +826,8 @@ export default function DispatchGantt({ month }: { month: string }) {
           borderRadius: 12,
           background: '#fff',
           overflow: 'auto',
+          maxHeight: 'calc(100vh - 320px)',
+          minHeight: 420,
         }}
       >
         {loading && <div style={{ padding: 16 }}>Đang tải dữ liệu điều hành...</div>}
@@ -849,15 +851,16 @@ export default function DispatchGantt({ month }: { month: string }) {
                 borderBottom: '1px solid #d8e4f0',
                 position: 'sticky',
                 top: 0,
-                zIndex: 5,
+                zIndex: 25,
                 background: '#f8fbff',
+                boxShadow: '0 6px 12px rgba(15, 23, 42, 0.05)',
               }}
             >
               <div
                 style={{
                   position: 'sticky',
                   left: 0,
-                  zIndex: 9,
+                  zIndex: 30,
                   padding: '12px 10px',
                   fontWeight: 700,
                   borderRight: '1px solid #d8e4f0',
