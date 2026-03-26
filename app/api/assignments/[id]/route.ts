@@ -19,6 +19,18 @@ type OverlapAssignmentRow = {
   end_datetime: string | null
 }
 
+type AssignmentLegRow = {
+  booking_id: string
+  seq_no: number
+  trip_date: string | null
+  pickup_time: string | null
+  dropoff_time: string | null
+  itinerary: string | null
+  distance_km: number | null
+  note: string | null
+  extra_amount: number | null
+}
+
 const ALLOWED_STATUSES: AssignmentStatus[] = [
   'pending',
   'confirmed',
@@ -104,6 +116,11 @@ function formatOverlapRange(row: OverlapAssignmentRow) {
   }
 
   return `${formatDateVN(row.start_date)} - ${formatDateVN(row.end_date)}`
+}
+
+function normalizeLegTime(value?: string | null) {
+  if (!value) return null
+  return String(value).slice(0, 8)
 }
 
 export async function PATCH(
@@ -316,7 +333,7 @@ export async function PATCH(
         .select('booking_code, start_date, end_date, start_datetime, end_datetime')
         .neq('id', id)
         .eq('driver_id', nextDriverId)
-        .neq('status', 'cancelled')
+        .neq('status', 'canceled')
         .order('start_datetime', { ascending: true })
         .order('start_date', { ascending: true })
 
@@ -379,6 +396,79 @@ export async function PATCH(
       {
         error:
           error instanceof Error ? error.message : 'Không thể cập nhật assignment',
+      },
+      { status: 500 },
+    )
+  }
+}
+
+export async function GET(
+  req: Request,
+  context: { params: Promise<{ id: string }> },
+) {
+  try {
+    const { id } = await context.params
+
+    if (!id || !isValidUuid(id)) {
+      return NextResponse.json(
+        { error: `Assignment id không hợp lệ: ${id}` },
+        { status: 400 },
+      )
+    }
+
+    const supabase = createClient()
+
+    const { data: assignment, error: assignmentError } = await supabase
+      .from('assignments')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (assignmentError || !assignment) {
+      return NextResponse.json(
+        { error: assignmentError?.message || 'Không tìm thấy assignment' },
+        { status: 404 },
+      )
+    }
+
+    let legs: AssignmentLegRow[] = []
+
+    if (assignment.booking_id) {
+      const { data: legRows, error: legsError } = await supabase
+        .from('itinerary_legs')
+        .select(
+          'booking_id, seq_no, trip_date, pickup_time, dropoff_time, itinerary, distance_km, note, extra_amount',
+        )
+        .eq('booking_id', assignment.booking_id)
+        .order('trip_date', { ascending: true })
+        .order('pickup_time', { ascending: true })
+        .order('seq_no', { ascending: true })
+
+      if (legsError) {
+        return NextResponse.json(
+          { error: legsError.message },
+          { status: 500 },
+        )
+      }
+
+      legs = (legRows ?? []).map((row) => ({
+        ...row,
+        pickup_time: normalizeLegTime(row.pickup_time),
+        dropoff_time: normalizeLegTime(row.dropoff_time),
+      }))
+    }
+
+    return NextResponse.json({
+      ...assignment,
+      legs,
+    })
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Không thể tải chi tiết assignment',
       },
       { status: 500 },
     )

@@ -539,6 +539,27 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
     return null
   }
 
+  async function reloadCurrentPage() {
+    const params = new URLSearchParams()
+    params.set('page', String(page))
+    params.set('pageSize', String(PAGE_SIZE))
+    params.set('month', month)
+    if (searchKeyword) {
+      params.set('search', searchKeyword)
+    }
+
+    const reloadRes = await fetch(`/api/bookings?${params.toString()}`, {
+      cache: 'no-store',
+    })
+    const reloadJson = (await reloadRes.json().catch(() => null)) as BookingListResponse | null
+
+    if (reloadRes.ok) {
+      setList(Array.isArray(reloadJson?.data) ? reloadJson.data : [])
+      setTotalBookings(Number(reloadJson?.pagination?.total || 0))
+      setTotalPages(Number(reloadJson?.pagination?.totalPages || 0))
+    }
+  }
+
   async function saveBooking() {
     const validationError = validateBeforeSave()
     if (validationError) {
@@ -562,25 +583,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
         throw new Error(json?.error || 'Không thể cập nhật booking')
       }
 
-      const reloadParams = new URLSearchParams()
-      reloadParams.set('page', String(page))
-      reloadParams.set('pageSize', String(PAGE_SIZE))
-      reloadParams.set('month', month)
-      if (searchKeyword) {
-        reloadParams.set('search', searchKeyword)
-      }
-
-      const reloadRes = await fetch(`/api/bookings?${reloadParams.toString()}`, {
-        cache: 'no-store',
-      })
-      const reloadJson = (await reloadRes.json().catch(() => null)) as BookingListResponse | null
-
-      if (reloadRes.ok) {
-        setList(Array.isArray(reloadJson?.data) ? reloadJson.data : [])
-        setTotalBookings(Number(reloadJson?.pagination?.total || 0))
-        setTotalPages(Number(reloadJson?.pagination?.totalPages || 0))
-      }
-
+      await reloadCurrentPage()
       setSelectedId(detail.id)
       setIsEditing(false)
       alert('Đã cập nhật booking thành công')
@@ -655,24 +658,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
       if (list.length === 1 && page > 1) {
         setPage((prev) => prev - 1)
       } else {
-        const params = new URLSearchParams()
-        params.set('page', String(page))
-        params.set('pageSize', String(PAGE_SIZE))
-        params.set('month', month)
-        if (searchKeyword) {
-          params.set('search', searchKeyword)
-        }
-
-        const reloadRes = await fetch(`/api/bookings?${params.toString()}`, {
-          cache: 'no-store',
-        })
-        const reloadJson = (await reloadRes.json().catch(() => null)) as BookingListResponse | null
-
-        if (reloadRes.ok) {
-          setList(Array.isArray(reloadJson?.data) ? reloadJson.data : [])
-          setTotalBookings(Number(reloadJson?.pagination?.total || 0))
-          setTotalPages(Number(reloadJson?.pagination?.totalPages || 0))
-        }
+        await reloadCurrentPage()
       }
 
       alert('Đã xóa booking gốc và toàn bộ dữ liệu liên quan')

@@ -295,9 +295,7 @@ export async function GET(req: Request) {
 
     if (month) {
       const { firstDate, lastDate } = getMonthDateRange(month)
-      query = query
-        .gte('start_date', firstDate)
-        .lte('start_date', lastDate)
+      query = query.gte('start_date', firstDate).lte('start_date', lastDate)
     }
 
     if (rawSearch) {

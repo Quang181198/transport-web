@@ -8,6 +8,23 @@ import type {
   VehicleRecord,
 } from '@/lib/types/transport'
 
+type AssignmentSummary = {
+  id: string
+  booking_id: string | null
+  booking_code: string
+  group_name: string
+  start_date: string
+  end_date: string
+  start_datetime: string | null
+  end_datetime: string | null
+  vehicle_type: string | null
+  vehicle_id: string | null
+  driver_id: string | null
+  vehicle_assigned: string | null
+  driver_assigned: string | null
+  status: AssignmentStatus | null
+}
+
 type ConflictInfo = {
   hasConflict: boolean
   messages: string[]
@@ -37,23 +54,17 @@ function getDaysInMonth(month: string) {
 }
 
 function getVisibleDays(month: string): VisibleDay[] {
-  return getDaysInMonth(month).map((day) => {
-    const date = `${month}-${String(day).padStart(2, '0')}`
-    return {
-      date,
-      label: String(day),
-    }
-  })
+  return getDaysInMonth(month).map((day) => ({
+    date: `${month}-${String(day).padStart(2, '0')}`,
+    label: String(day),
+  }))
 }
 
 function formatDateTimeVN(value?: string | null) {
   if (!value) return '-'
 
   const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
+  if (Number.isNaN(date.getTime())) return value
 
   return new Intl.DateTimeFormat('vi-VN', {
     weekday: 'short',
@@ -173,9 +184,7 @@ function getClampedLayout(
     0.5,
   )
 
-  const hoursPerDay = 24
-  const hourWidth = dayColumnWidth / hoursPerDay
-
+  const hourWidth = dayColumnWidth / 24
   const left = Math.max(hoursFromMonthStart * hourWidth + 4, 4)
   const width = Math.max(durationHours * hourWidth - 8, 24)
 
@@ -231,10 +240,12 @@ const VEHICLE_TYPE_LEGEND = [
 ]
 
 export default function DispatchGantt({ month }: { month: string }) {
-  const [data, setData] = useState<AssignmentWithLegs[]>([])
+  const [data, setData] = useState<AssignmentSummary[]>([])
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
   const [drivers, setDrivers] = useState<DriverRecord[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedDetail, setSelectedDetail] = useState<AssignmentWithLegs | null>(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [errorText, setErrorText] = useState('')
   const [saving, setSaving] = useState(false)
@@ -259,18 +270,17 @@ export default function DispatchGantt({ month }: { month: string }) {
   const stickyScrollRef = useRef<HTMLDivElement | null>(null)
   const syncingScrollRef = useRef<'main' | 'sticky' | null>(null)
 
-  const selected = useMemo(
+  const selectedSummary = useMemo(
     () => data.find((item) => item.id === selectedId) ?? null,
     [data, selectedId],
   )
 
+  const selected = selectedDetail ?? (selectedSummary as AssignmentWithLegs | null)
+
   const loadAssignments = useCallback(
     async (showLoading = false) => {
       try {
-        if (showLoading) {
-          setLoading(true)
-        }
-
+        if (showLoading) setLoading(true)
         setErrorText('')
 
         const res = await fetch(`/api/dispatch?month=${month}`, {
@@ -282,7 +292,7 @@ export default function DispatchGantt({ month }: { month: string }) {
           throw new Error(json?.error || 'Không thể tải dữ liệu điều hành')
         }
 
-        const nextData: AssignmentWithLegs[] = Array.isArray(json)
+        const nextData: AssignmentSummary[] = Array.isArray(json)
           ? json
           : Array.isArray(json?.data)
             ? json.data
@@ -296,9 +306,7 @@ export default function DispatchGantt({ month }: { month: string }) {
           error instanceof Error ? error.message : 'Lỗi tải dữ liệu điều hành',
         )
       } finally {
-        if (showLoading) {
-          setLoading(false)
-        }
+        if (showLoading) setLoading(false)
       }
     },
     [month],
@@ -322,28 +330,52 @@ export default function DispatchGantt({ month }: { month: string }) {
       setVehicles([])
       setDrivers([])
       setErrorText(
-        error instanceof Error
-          ? error.message
-          : 'Không thể tải danh sách xe/lái xe',
+        error instanceof Error ? error.message : 'Không thể tải danh sách xe/lái xe',
       )
     }
   }, [])
 
+  const loadAssignmentDetail = useCallback(async (id: string) => {
+    try {
+      setDetailLoading(true)
+
+      const res = await fetch(`/api/assignments/${id}`, {
+        cache: 'no-store',
+      })
+      const json = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(json?.error || 'Không thể tải chi tiết assignment')
+      }
+
+      setSelectedDetail(json as AssignmentWithLegs)
+    } catch (error) {
+      console.error(error)
+      setSelectedDetail(null)
+      alert(
+        error instanceof Error ? error.message : 'Không thể tải chi tiết assignment',
+      )
+    } finally {
+      setDetailLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    loadAssignments(true)
-    loadResources()
+    void loadAssignments(true)
+    void loadResources()
   }, [loadAssignments, loadResources])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
-      loadAssignments(false)
+      void loadAssignments(false)
     }, 10000)
 
     return () => window.clearInterval(timer)
   }, [loadAssignments])
 
   useEffect(() => {
-    if (!selected) {
+    if (!selectedId) {
+      setSelectedDetail(null)
       setVehicleIdInput('')
       setDriverIdInput('')
       setStatusInput('pending')
@@ -351,16 +383,24 @@ export default function DispatchGantt({ month }: { month: string }) {
       return
     }
 
-    setVehicleIdInput(selected.vehicle_id || '')
-    setDriverIdInput(selected.driver_id || '')
-    setStatusInput(selected.status || 'pending')
-  }, [selected])
+    const source =
+      selectedDetail && selectedDetail.id === selectedId
+        ? selectedDetail
+        : selectedSummary
+
+    if (!source) return
+
+    setVehicleIdInput(source.vehicle_id || '')
+    setDriverIdInput(source.driver_id || '')
+    setStatusInput((source.status || 'pending') as AssignmentStatus)
+  }, [selectedId, selectedDetail, selectedSummary])
 
   useEffect(() => {
     if (!selectedId) return
     const stillExists = data.some((item) => item.id === selectedId)
     if (!stillExists) {
       setSelectedId(null)
+      setSelectedDetail(null)
       setDuplicateWarnings([])
     }
   }, [data, selectedId])
@@ -456,20 +496,23 @@ export default function DispatchGantt({ month }: { month: string }) {
     return Array.from(new Set(combined))
   }, [selected, conflictMap, duplicateWarnings])
 
-  const canDragAssignment = useCallback((assignment: AssignmentWithLegs) => {
+const canDragAssignment = useCallback(
+  (
+    assignment:
+      | AssignmentSummary
+      | Pick<AssignmentWithLegs, 'status'>
+  ) => {
     return (
       assignment.status !== 'in_progress' &&
       assignment.status !== 'completed' &&
       assignment.status !== 'canceled'
     )
-  }, [])
+  },
+  [],
+)
 
   const startDrag = useCallback(
-    (
-      event: React.MouseEvent,
-      assignment: AssignmentWithLegs,
-      mode: DragMode,
-    ) => {
+    (event: React.MouseEvent, assignment: AssignmentSummary, mode: DragMode) => {
       if (!canDragAssignment(assignment)) return
 
       event.preventDefault()
@@ -556,48 +599,42 @@ export default function DispatchGantt({ month }: { month: string }) {
         return
       }
 
-      if (currentDrag.mode === 'resize-end') {
-        let nextEnd = addMinutes(currentDrag.initialEnd, snappedDeltaMinutes)
-        nextEnd = clampDateTime(nextEnd, currentDrag.initialStart, maxBoundary)
+      let nextEnd = addMinutes(currentDrag.initialEnd, snappedDeltaMinutes)
+      nextEnd = clampDateTime(nextEnd, currentDrag.initialStart, maxBoundary)
 
-        const minBoundaryFromStart = addMinutes(currentDrag.initialStart, slotMinutes)
-        if (nextEnd < minBoundaryFromStart) {
-          nextEnd = minBoundaryFromStart
-        }
-
-        setDragState((prev) =>
-          prev
-            ? {
-                ...prev,
-                previewStart: prev.previewStart,
-                previewEnd: roundToNearestSlot(nextEnd, slotMinutes),
-              }
-            : prev,
-        )
+      const minBoundaryFromStart = addMinutes(currentDrag.initialStart, slotMinutes)
+      if (nextEnd < minBoundaryFromStart) {
+        nextEnd = minBoundaryFromStart
       }
+
+      setDragState((prev) =>
+        prev
+          ? {
+              ...prev,
+              previewStart: prev.previewStart,
+              previewEnd: roundToNearestSlot(nextEnd, slotMinutes),
+            }
+          : prev,
+      )
     }
 
     async function onMouseUp() {
-      const currentDrag = dragState
+      const releasedDrag = currentDrag
       setDragState(null)
 
-      if (!currentDrag) {
-        return
-      }
-
       if (
-        currentDrag.previewStart === currentDrag.initialStart &&
-        currentDrag.previewEnd === currentDrag.initialEnd
+        releasedDrag.previewStart === releasedDrag.initialStart &&
+        releasedDrag.previewEnd === releasedDrag.initialEnd
       ) {
         return
       }
 
       const ok = window.confirm(
         `Xác nhận cập nhật thời gian?\n\nTừ: ${formatDateTimeVN(
-          currentDrag.initialStart,
-        )} → ${formatDateTimeVN(currentDrag.initialEnd)}\nThành: ${formatDateTimeVN(
-          currentDrag.previewStart,
-        )} → ${formatDateTimeVN(currentDrag.previewEnd)}`,
+          releasedDrag.initialStart,
+        )} → ${formatDateTimeVN(releasedDrag.initialEnd)}\nThành: ${formatDateTimeVN(
+          releasedDrag.previewStart,
+        )} → ${formatDateTimeVN(releasedDrag.previewEnd)}`,
       )
 
       if (!ok) {
@@ -609,14 +646,14 @@ export default function DispatchGantt({ month }: { month: string }) {
         setSaving(true)
         setDuplicateWarnings([])
 
-        const res = await fetch(`/api/assignments/${currentDrag.assignmentId}`, {
+        const res = await fetch(`/api/assignments/${releasedDrag.assignmentId}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            start_datetime: currentDrag.previewStart,
-            end_datetime: currentDrag.previewEnd,
+            start_datetime: releasedDrag.previewStart,
+            end_datetime: releasedDrag.previewEnd,
           }),
         })
 
@@ -628,6 +665,10 @@ export default function DispatchGantt({ month }: { month: string }) {
 
         setDuplicateWarnings(Array.isArray(json?.warnings) ? json.warnings : [])
         await loadAssignments(false)
+
+        if (selectedId === releasedDrag.assignmentId) {
+          await loadAssignmentDetail(releasedDrag.assignmentId)
+        }
       } catch (error) {
         console.error(error)
         alert(
@@ -648,7 +689,7 @@ export default function DispatchGantt({ month }: { month: string }) {
       window.removeEventListener('mousemove', onMouseMove)
       window.removeEventListener('mouseup', onMouseUp)
     }
-  }, [dragState, loadAssignments, month, pixelsPerMinute, slotMinutes])
+  }, [dragState, loadAssignmentDetail, loadAssignments, month, pixelsPerMinute, selectedId, slotMinutes])
 
   useEffect(() => {
     const mainEl = mainScrollRef.current
@@ -688,6 +729,11 @@ export default function DispatchGantt({ month }: { month: string }) {
     }
   }, [ganttContentWidth])
 
+  async function openAssignmentPanel(id: string) {
+    setSelectedId(id)
+    await loadAssignmentDetail(id)
+  }
+
   async function deleteAssignment() {
     if (!selected?.id) {
       alert('Không tìm thấy id assignment để xóa')
@@ -708,6 +754,7 @@ export default function DispatchGantt({ month }: { month: string }) {
       }
 
       setSelectedId(null)
+      setSelectedDetail(null)
       setDuplicateWarnings([])
       await loadAssignments(false)
     } catch (error) {
@@ -746,6 +793,7 @@ export default function DispatchGantt({ month }: { month: string }) {
 
       setDuplicateWarnings(Array.isArray(json?.warnings) ? json.warnings : [])
       await loadAssignments(false)
+      await loadAssignmentDetail(selected.id)
 
       if (!json?.warnings || json.warnings.length === 0) {
         alert('Đã cập nhật điều hành thành công')
@@ -839,11 +887,7 @@ export default function DispatchGantt({ month }: { month: string }) {
         )}
 
         {!loading && !errorText && data.length > 0 && (
-          <div
-            style={{
-              minWidth: ganttContentWidth,
-            }}
-          >
+          <div style={{ minWidth: ganttContentWidth }}>
             <div
               style={{
                 display: 'grid',
@@ -896,12 +940,8 @@ export default function DispatchGantt({ month }: { month: string }) {
                 preview?.end || item.end_datetime || `${item.end_date || item.start_date}T23:59:59`
 
               const { left, width } = getClampedLayout(start, end, month, dayColumnWidth)
-
               const barColor = getVehicleTypeColor(item.vehicle_type)
-              const label = `${item.vehicle_assigned || 'Chưa gán xe'} | ${
-                item.driver_assigned || 'Chưa gán lái xe'
-              }`
-
+              const label = `${item.vehicle_assigned || 'Chưa gán xe'} | ${item.driver_assigned || 'Chưa gán lái xe'}`
               const conflictInfo = conflictMap.get(item.id)
               const hasConflict = Boolean(conflictInfo?.hasConflict)
               const locked = !canDragAssignment(item)
@@ -978,7 +1018,9 @@ export default function DispatchGantt({ month }: { month: string }) {
                     <div
                       role="button"
                       tabIndex={0}
-                      onDoubleClick={() => setSelectedId(item.id)}
+                      onDoubleClick={() => {
+                        void openAssignmentPanel(item.id)
+                      }}
                       onMouseDown={(e) => startDrag(e, item, 'move')}
                       style={{
                         position: 'absolute',
@@ -1008,9 +1050,7 @@ export default function DispatchGantt({ month }: { month: string }) {
                       title={
                         hasConflict
                           ? `${label} | ${conflictInfo?.messages.join(' | ')}`
-                          : `${label} | ${getVehicleTypeLabel(item.vehicle_type)} | ${formatDateTimeVN(
-                              start,
-                            )} → ${formatDateTimeVN(end)}`
+                          : `${label} | ${getVehicleTypeLabel(item.vehicle_type)} | ${formatDateTimeVN(start)} → ${formatDateTimeVN(end)}`
                       }
                     >
                       {hasConflict ? `⚠ ${label}` : label}
@@ -1107,7 +1147,7 @@ export default function DispatchGantt({ month }: { month: string }) {
         </div>
       </div>
 
-      {selected && (
+      {selectedId && (
         <div
           style={{
             position: 'fixed',
@@ -1122,185 +1162,194 @@ export default function DispatchGantt({ month }: { month: string }) {
             overflowY: 'auto',
           }}
         >
-          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>
-            {selected.booking_code}
-          </h2>
+          {detailLoading ? (
+            <div>Đang tải chi tiết assignment...</div>
+          ) : selected ? (
+            <>
+              <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>
+                {selected.booking_code}
+              </h2>
 
-          <p><strong>Đoàn: </strong> {selected.group_name}</p>
-          <p><strong>Bắt đầu: </strong> {formatDateTimeVN(selected.start_datetime)}</p>
-          <p><strong>Kết thúc: </strong> {formatDateTimeVN(selected.end_datetime)}</p>
-          <p><strong>Thời lượng: </strong> {getRoundedDurationHours(selected.start_datetime, selected.end_datetime)}</p>
-          <p><strong>Loại xe: </strong> {vehicleTypeLabel}</p>
-          <p><strong>Trạng thái drag: </strong> {canDragAssignment(selected) ? 'Có thể kéo' : 'Bị khóa'}</p>
+              <p><strong>Đoàn: </strong> {selected.group_name}</p>
+              <p><strong>Bắt đầu: </strong> {formatDateTimeVN(selected.start_datetime)}</p>
+              <p><strong>Kết thúc: </strong> {formatDateTimeVN(selected.end_datetime)}</p>
+              <p><strong>Thời lượng: </strong> {getRoundedDurationHours(selected.start_datetime, selected.end_datetime)}</p>
+              <p><strong>Loại xe: </strong> {vehicleTypeLabel}</p>
+              <p><strong>Trạng thái drag: </strong> {canDragAssignment(selected) ? 'Có thể kéo' : 'Bị khóa'}</p>
 
-          {selectedWarnings.length > 0 && (
-            <div
-              style={{
-                marginTop: 14,
-                marginBottom: 10,
-                background: '#fff7ed',
-                border: '1px solid #fdba74',
-                color: '#9a3412',
-                borderRadius: 8,
-                padding: 10,
-              }}
-            >
-              <strong>Cảnh báo trùng lịch: </strong>
-              <ul style={{ marginTop: 8, paddingLeft: 18 }}>
-                {selectedWarnings.map((warning, index) => (
-                  <li key={`${selected.id}-${index}`}>{warning}</li>
-                ))}
-              </ul>
-            </div>
+              {selectedWarnings.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    marginBottom: 10,
+                    background: '#fff7ed',
+                    border: '1px solid #fdba74',
+                    color: '#9a3412',
+                    borderRadius: 8,
+                    padding: 10,
+                  }}
+                >
+                  <strong>Cảnh báo trùng lịch: </strong>
+                  <ul style={{ marginTop: 8, paddingLeft: 18 }}>
+                    {selectedWarnings.map((warning, index) => (
+                      <li key={`${selected.id}-${index}`}>{warning}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div style={{ marginTop: 18, display: 'grid', gap: 12 }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Xe</label>
+                  <select
+                    value={vehicleIdInput}
+                    onChange={(e) => setVehicleIdInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      background: '#fff',
+                    }}
+                  >
+                    <option value="">-- Chọn xe --</option>
+                    {vehicles.map((vehicle) => (
+                      <option key={vehicle.id} value={vehicle.id}>
+                        {vehicle.plate_number}
+                        {vehicle.vehicle_name ? ` - ${vehicle.vehicle_name}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Lái xe</label>
+                  <select
+                    value={driverIdInput}
+                    onChange={(e) => setDriverIdInput(e.target.value)}
+                    style={{
+                      width: '100%',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      background: '#fff',
+                    }}
+                  >
+                    <option value="">-- Chọn lái xe --</option>
+                    {drivers.map((driver) => (
+                      <option key={driver.id} value={driver.id}>
+                        {driver.full_name}
+                        {driver.phone ? ` - ${driver.phone}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Trạng thái</label>
+                  <select
+                    value={statusInput}
+                    onChange={(e) => setStatusInput(e.target.value as AssignmentStatus)}
+                    style={{
+                      width: '100%',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: 8,
+                      padding: '10px 12px',
+                      background: '#fff',
+                    }}
+                  >
+                    <option value="pending">pending</option>
+                    <option value="confirmed">confirmed</option>
+                    <option value="assigned">assigned</option>
+                    <option value="in_progress">in_progress</option>
+                    <option value="completed">completed</option>
+                    <option value="canceled">canceled</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Màu theo loại xe</label>
+                  <div
+                    style={{
+                      height: 40,
+                      borderRadius: 8,
+                      border: '1px solid #cbd5e1',
+                      background: vehiclePreviewColor,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>
+                <button
+                  type="button"
+                  onClick={saveAssignment}
+                  disabled={saving}
+                  style={{
+                    background: '#16a34a',
+                    color: '#fff',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  {saving ? 'Đang lưu...' : 'Lưu điều hành'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openDispatchOrderPdf}
+                  disabled={dispatchOrderLoading}
+                  style={{
+                    background: '#0f766e',
+                    color: '#fff',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  {dispatchOrderLoading ? 'Đang mở PDF...' : 'In Lệnh Điều Xe'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={deleteAssignment}
+                  style={{
+                    background: '#dc2626',
+                    color: '#fff',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: 'none',
+                    fontWeight: 600,
+                  }}
+                >
+                  Xóa đơn
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedId(null)
+                    setSelectedDetail(null)
+                    setDuplicateWarnings([])
+                  }}
+                  style={{
+                    background: '#fff',
+                    color: '#0f172a',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid #cbd5e1',
+                  }}
+                >
+                  Đóng
+                </button>
+              </div>
+            </>
+          ) : (
+            <div>Không có dữ liệu assignment.</div>
           )}
-
-          <div style={{ marginTop: 18, display: 'grid', gap: 12 }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Xe</label>
-              <select
-                value={vehicleIdInput}
-                onChange={(e) => setVehicleIdInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 8,
-                  padding: '10px 12px',
-                  background: '#fff',
-                }}
-              >
-                <option value="">-- Chọn xe --</option>
-                {vehicles.map((vehicle) => (
-                  <option key={vehicle.id} value={vehicle.id}>
-                    {vehicle.plate_number}
-                    {vehicle.vehicle_name ? ` - ${vehicle.vehicle_name}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Lái xe</label>
-              <select
-                value={driverIdInput}
-                onChange={(e) => setDriverIdInput(e.target.value)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 8,
-                  padding: '10px 12px',
-                  background: '#fff',
-                }}
-              >
-                <option value="">-- Chọn lái xe --</option>
-                {drivers.map((driver) => (
-                  <option key={driver.id} value={driver.id}>
-                    {driver.full_name}
-                    {driver.phone ? ` - ${driver.phone}` : ''}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Trạng thái</label>
-              <select
-                value={statusInput}
-                onChange={(e) => setStatusInput(e.target.value as AssignmentStatus)}
-                style={{
-                  width: '100%',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: 8,
-                  padding: '10px 12px',
-                  background: '#fff',
-                }}
-              >
-                <option value="pending">pending</option>
-                <option value="confirmed">confirmed</option>
-                <option value="assigned">assigned</option>
-                <option value="in_progress">in_progress</option>
-                <option value="completed">completed</option>
-                <option value="canceled">canceled</option>
-              </select>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: 6, fontWeight: 600 }}>Màu theo loại xe</label>
-              <div
-                style={{
-                  height: 40,
-                  borderRadius: 8,
-                  border: '1px solid #cbd5e1',
-                  background: vehiclePreviewColor,
-                }}
-              />
-            </div>
-          </div>
-
-          <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>
-            <button
-              type="button"
-              onClick={saveAssignment}
-              disabled={saving}
-              style={{
-                background: '#16a34a',
-                color: '#fff',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: 'none',
-                fontWeight: 600,
-              }}
-            >
-              {saving ? 'Đang lưu...' : 'Lưu điều hành'}
-            </button>
-
-            <button
-              type="button"
-              onClick={openDispatchOrderPdf}
-              disabled={dispatchOrderLoading}
-              style={{
-                background: '#0f766e',
-                color: '#fff',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: 'none',
-                fontWeight: 600,
-              }}
-            >
-              {dispatchOrderLoading ? 'Đang mở PDF...' : 'In Lệnh Điều Xe'}
-            </button>
-
-            <button
-              type="button"
-              onClick={deleteAssignment}
-              style={{
-                background: '#dc2626',
-                color: '#fff',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: 'none',
-                fontWeight: 600,
-              }}
-            >
-              Xóa đơn
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedId(null)
-                setDuplicateWarnings([])
-              }}
-              style={{
-                background: '#fff',
-                color: '#0f172a',
-                padding: '10px 12px',
-                borderRadius: 8,
-                border: '1px solid #cbd5e1',
-              }}
-            >
-              Đóng
-            </button>
-          </div>
         </div>
       )}
     </>

@@ -15,36 +15,16 @@ type AssignmentRow = {
   driver_id: string | null
   vehicle_assigned: string | null
   driver_assigned: string | null
-  quotation_pdf_path: string | null
   status: string | null
-}
-
-type LegRow = {
-  booking_id: string
-  seq_no: number
-  trip_date: string | null
-  pickup_time: string | null
-  dropoff_time: string | null
-  itinerary: string | null
-  distance_km: number | null
-  note: string | null
-  extra_amount: number | null
 }
 
 function isValidMonth(value: string) {
   return /^\d{4}-(0[1-9]|1[0-2])$/.test(value)
 }
 
-function normalizeTime(value?: string | null) {
-  if (!value) return ''
-  return String(value).slice(0, 8)
-}
-
-function buildDateTime(date: string | null | undefined, time: string | null | undefined, isEnd: boolean) {
+function buildDateTime(date: string | null | undefined, isEnd: boolean) {
   if (!date) return null
-  const normalizedTime = normalizeTime(time)
-  const fallback = isEnd ? '23:59:59' : '00:00:00'
-  return `${date}T${normalizedTime || fallback}`
+  return `${date}T${isEnd ? '23:59:59' : '00:00:00'}`
 }
 
 function getMonthRange(month: string) {
@@ -54,19 +34,17 @@ function getMonthRange(month: string) {
   const lastDate = `${month}-${String(lastDay).padStart(2, '0')}`
 
   return {
-    firstDate,
-    lastDate,
-    firstDateTime: `${firstDate}T00:00:00`,
-    lastDateTime: `${lastDate}T23:59:59`,
+    firstDate: `${firstDate}T00:00:00`,
+    lastDate: `${lastDate}T23:59:59`,
   }
 }
 
 function getEffectiveAssignmentStart(row: AssignmentRow) {
-  return row.start_datetime || buildDateTime(row.start_date, null, false)
+  return row.start_datetime || buildDateTime(row.start_date, false)
 }
 
 function getEffectiveAssignmentEnd(row: AssignmentRow) {
-  return row.end_datetime || buildDateTime(row.end_date || row.start_date, null, true)
+  return row.end_datetime || buildDateTime(row.end_date || row.start_date, true)
 }
 
 export async function GET(req: Request) {
@@ -85,70 +63,28 @@ export async function GET(req: Request) {
       )
     }
 
-    const { firstDate, lastDate, firstDateTime, lastDateTime } = getMonthRange(month)
+    const { firstDate, lastDate } = getMonthRange(month)
     const supabase = createClient()
 
-    const { data: assignments, error: assignmentsError } = await supabase
+    const { data, error } = await supabase
       .from('assignments')
-      .select('*')
+      .select(
+        'id, booking_id, booking_code, group_name, start_date, end_date, start_datetime, end_datetime, vehicle_type, vehicle_id, driver_id, vehicle_assigned, driver_assigned, status',
+      )
       .or(
-        `and(start_datetime.lte.${lastDateTime},end_datetime.gte.${firstDateTime}),and(start_datetime.is.null,start_date.lte.${lastDate},end_date.gte.${firstDate})`,
+        `and(start_datetime.lte.${lastDate},end_datetime.gte.${firstDate}),and(start_datetime.is.null,start_date.lte.${month}-31,end_date.gte.${month}-01)`,
       )
       .order('start_datetime', { ascending: true })
       .order('start_date', { ascending: true })
 
-    if (assignmentsError) {
-      return NextResponse.json({ error: assignmentsError.message }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    const assignmentRows = ((assignments ?? []) as AssignmentRow[]).map((row) => ({
+    const result = ((data ?? []) as AssignmentRow[]).map((row) => ({
       ...row,
       start_datetime: getEffectiveAssignmentStart(row),
       end_datetime: getEffectiveAssignmentEnd(row),
-    }))
-
-    const bookingIds = Array.from(
-      new Set(
-        assignmentRows
-          .map((item) => item.booking_id)
-          .filter((value): value is string => Boolean(value)),
-      ),
-    )
-
-    let legsByBookingId = new Map<string, LegRow[]>()
-
-    if (bookingIds.length > 0) {
-      const { data: legs, error: legsError } = await supabase
-        .from('itinerary_legs')
-        .select('*')
-        .in('booking_id', bookingIds)
-        .order('trip_date', { ascending: true })
-        .order('pickup_time', { ascending: true })
-        .order('seq_no', { ascending: true })
-
-      if (legsError) {
-        return NextResponse.json({ error: legsError.message }, { status: 500 })
-      }
-
-      const legRows = (legs ?? []) as LegRow[]
-
-      legsByBookingId = legRows.reduce((map, leg) => {
-        const current = map.get(leg.booking_id) ?? []
-        current.push({
-          ...leg,
-          pickup_time: normalizeTime(leg.pickup_time),
-          dropoff_time: normalizeTime(leg.dropoff_time),
-        })
-        map.set(leg.booking_id, current)
-        return map
-      }, new Map<string, LegRow[]>())
-    }
-
-    const result = assignmentRows.map((assignment) => ({
-      ...assignment,
-      legs: assignment.booking_id
-        ? legsByBookingId.get(assignment.booking_id) ?? []
-        : [],
     }))
 
     return NextResponse.json(result)
