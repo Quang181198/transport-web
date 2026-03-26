@@ -282,9 +282,7 @@ export async function GET(req: Request) {
     const revenueOverTimeMap = new Map<string, number>()
     const bookingStatusMap = new Map<string, number>()
 
-    const bookingsForTimeline = filteredBookings
-
-    bookingsForTimeline.forEach((booking) => {
+    filteredBookings.forEach((booking) => {
       const label =
         month === 'all'
           ? getOperationalMonthKey(booking)
@@ -375,6 +373,85 @@ export async function GET(req: Request) {
       }))
       .sort((a, b) => b.value - a.value)
 
+    // ===== NEW BUSINESS CHARTS =====
+
+    const revenueByVehicleTypeMap = new Map<string, number>()
+    filteredBookings.forEach((booking) => {
+      const vehicleType = (booking.vehicle_type || 'Unknown').trim() || 'Unknown'
+      incrementMap(
+        revenueByVehicleTypeMap,
+        vehicleType,
+        Number(booking.total_amount || 0),
+      )
+    })
+
+    let directRevenue = 0
+    let partnerRevenue = 0
+
+    filteredBookings.forEach((booking) => {
+      const amount = Number(booking.total_amount || 0)
+
+      if (booking.booking_source === 'partner') {
+        partnerRevenue += amount
+      } else {
+        directRevenue += amount
+      }
+    })
+
+    const avgRevenueAccumulator = new Map<string, { sum: number; count: number }>()
+    filteredBookings.forEach((booking) => {
+      const label =
+        month === 'all'
+          ? getOperationalMonthKey(booking)
+          : getOperationalDayKey(booking)
+
+      const current = avgRevenueAccumulator.get(label) || { sum: 0, count: 0 }
+      current.sum += Number(booking.total_amount || 0)
+      current.count += 1
+      avgRevenueAccumulator.set(label, current)
+    })
+
+    const avgRevenueOverTime = Array.from(avgRevenueAccumulator.entries())
+      .map(([label, item]) => ({
+        label,
+        value: item.count > 0 ? item.sum / item.count : 0,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+
+    const bookingById = new Map<string, BookingRow>()
+    filteredBookings.forEach((booking) => {
+      bookingById.set(booking.id, booking)
+    })
+
+    const cancellationAccumulator = new Map<string, { total: number; canceled: number }>()
+    filteredAssignments.forEach((assignment) => {
+      if (!assignment.booking_id) return
+
+      const booking = bookingById.get(assignment.booking_id)
+      if (!booking) return
+
+      const label =
+        month === 'all'
+          ? getOperationalMonthKey(booking)
+          : getOperationalDayKey(booking)
+
+      const current = cancellationAccumulator.get(label) || { total: 0, canceled: 0 }
+      current.total += 1
+
+      if (normalizeStatus(assignment.status) === 'canceled') {
+        current.canceled += 1
+      }
+
+      cancellationAccumulator.set(label, current)
+    })
+
+    const cancellationRateOverTime = Array.from(cancellationAccumulator.entries())
+      .map(([label, item]) => ({
+        label,
+        value: item.total > 0 ? (item.canceled / item.total) * 100 : 0,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+
     return NextResponse.json({
       filter: {
         year,
@@ -397,6 +474,14 @@ export async function GET(req: Request) {
         vehicleUtilization,
         vehicleRevenue,
         driverUtilization,
+
+        revenueByVehicleType: sortEntries(revenueByVehicleTypeMap),
+        revenueBySource: [
+          { label: 'Direct', value: directRevenue },
+          { label: 'Partner', value: partnerRevenue },
+        ],
+        avgRevenueOverTime,
+        cancellationRateOverTime,
       },
     })
   } catch (error) {

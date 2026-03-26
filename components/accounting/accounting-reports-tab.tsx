@@ -38,6 +38,10 @@ type ChartData = {
   vehicleUtilization: ChartBarItem[]
   vehicleRevenue: ChartBarItem[]
   driverUtilization: ChartBarItem[]
+  revenueByVehicleType: ChartBarItem[]
+  revenueBySource: ChartBarItem[]
+  avgRevenueOverTime: ChartBarItem[]
+  cancellationRateOverTime: ChartBarItem[]
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -50,6 +54,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 const COVERAGE_COLORS = ['#2563eb', '#93c5fd', '#16a34a', '#86efac']
+const PIE_COLORS = ['#2563eb', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16']
 
 function formatCurrency(value: number) {
   return `${Number(value || 0).toLocaleString('vi-VN')} đ`
@@ -112,6 +117,27 @@ function formatTimeTooltipLabel(label: string) {
   }
 
   return label
+}
+
+function formatVehicleTypeLabel(label: string) {
+  switch ((label || '').trim()) {
+    case '5':
+      return '5 chỗ'
+    case '7':
+      return '7 chỗ'
+    case '9':
+      return '9 chỗ'
+    case '16':
+      return '16 chỗ'
+    case '29':
+      return '29 chỗ'
+    case '45':
+      return '45 chỗ'
+    case 'Unknown':
+      return 'Chưa rõ'
+    default:
+      return label || 'Chưa rõ'
+  }
 }
 
 function EmptyChart({ text }: { text: string }) {
@@ -191,6 +217,10 @@ export default function AccountingReportsTab() {
     vehicleUtilization: [],
     vehicleRevenue: [],
     driverUtilization: [],
+    revenueByVehicleType: [],
+    revenueBySource: [],
+    avgRevenueOverTime: [],
+    cancellationRateOverTime: [],
   })
 
   useEffect(() => {
@@ -242,6 +272,18 @@ export default function AccountingReportsTab() {
           driverUtilization: Array.isArray(json?.charts?.driverUtilization)
             ? json.charts.driverUtilization
             : [],
+          revenueByVehicleType: Array.isArray(json?.charts?.revenueByVehicleType)
+            ? json.charts.revenueByVehicleType
+            : [],
+          revenueBySource: Array.isArray(json?.charts?.revenueBySource)
+            ? json.charts.revenueBySource
+            : [],
+          avgRevenueOverTime: Array.isArray(json?.charts?.avgRevenueOverTime)
+            ? json.charts.avgRevenueOverTime
+            : [],
+          cancellationRateOverTime: Array.isArray(json?.charts?.cancellationRateOverTime)
+            ? json.charts.cancellationRateOverTime
+            : [],
         })
       } catch (error) {
         console.error(error)
@@ -269,9 +311,18 @@ export default function AccountingReportsTab() {
     ...item,
     label: normalizeStatusLabel(item.label),
   }))
+  const revenueByVehicleType = (charts.revenueByVehicleType || []).map((item) => ({
+    ...item,
+    label: formatVehicleTypeLabel(item.label),
+  }))
+  const revenueBySource = charts.revenueBySource || []
+  const avgRevenueOverTime = charts.avgRevenueOverTime || []
+  const cancellationRateOverTime = charts.cancellationRateOverTime || []
 
   const bookingTimeAxisInterval = getTimeAxisInterval(bookingsOverTime.length)
   const revenueTimeAxisInterval = getTimeAxisInterval(revenueOverTime.length)
+  const avgRevenueTimeAxisInterval = getTimeAxisInterval(avgRevenueOverTime.length)
+  const cancelRateAxisInterval = getTimeAxisInterval(cancellationRateOverTime.length)
 
   const assignmentCoverageData: ChartBarItem[] = [
     { label: 'Đã gán xe', value: charts.assignmentCoverage.vehicleAssigned },
@@ -395,7 +446,7 @@ export default function AccountingReportsTab() {
           >
             <ChartCard
               title="1) Booking theo thời gian"
-              note="Nguồn: bookings. Cho biết nhu cầu theo ngày/tháng, xu hướng tăng trưởng và mùa cao điểm - thấp điểm. Đây là biểu đồ bắt buộc số 1."
+              note="Nguồn: bookings. Cho biết nhu cầu theo ngày/tháng, xu hướng tăng trưởng và mùa cao điểm - thấp điểm."
             >
               {bookingsOverTime.length === 0 ? (
                 <EmptyChart text="Chưa có dữ liệu booking theo thời gian." />
@@ -439,7 +490,7 @@ export default function AccountingReportsTab() {
 
             <ChartCard
               title="2) Doanh thu theo thời gian"
-              note="Nguồn: giá trị booking. Cho biết công ty kiếm tiền theo thời gian, tháng nào đóng góp doanh thu lớn nhất. Đây là chart rất quan trọng cho CEO."
+              note="Nguồn: giá trị booking. Cho biết công ty kiếm tiền theo thời gian, tháng nào đóng góp doanh thu lớn nhất."
             >
               {revenueOverTime.length === 0 ? (
                 <EmptyChart text="Chưa có dữ liệu doanh thu theo thời gian." />
@@ -482,7 +533,7 @@ export default function AccountingReportsTab() {
 
             <ChartCard
               title="3) Booking theo trạng thái"
-              note="Nguồn: assignments.status. Trả lời bao nhiêu booking đã hoàn tất, bao nhiêu đang xử lý, tỷ lệ hủy ra sao. Đây là chart rất quan trọng cho vận hành."
+              note="Nguồn: assignments.status. Trả lời bao nhiêu booking đã hoàn tất, bao nhiêu đang xử lý, tỷ lệ hủy ra sao."
             >
               {bookingStatus.length === 0 ? (
                 <EmptyChart text="Chưa có dữ liệu trạng thái booking." />
@@ -539,7 +590,7 @@ export default function AccountingReportsTab() {
 
             <ChartCard
               title="5) Mức sử dụng xe"
-              note="Nguồn: assignments.vehicle_id + vehicles + bookings.total_km. Trục dọc hiển thị biển số + tên xe. Biểu đồ cho biết tổng số km mà từng xe đã phục vụ."
+              note="Nguồn: assignments.vehicle_id + vehicles + bookings.total_km. Cho biết tổng số km mà từng xe đã phục vụ."
             >
               {vehicleUtilization.length === 0 ? (
                 <EmptyChart text="Chưa có dữ liệu mức sử dụng xe." />
@@ -561,7 +612,7 @@ export default function AccountingReportsTab() {
 
             <ChartCard
               title="6) Thu nhập theo xe"
-              note="Nguồn: assignments.vehicle_id + vehicles + bookings.total_amount. Cho biết xe nào tạo ra doanh thu cao nhất, hỗ trợ đánh giá hiệu quả khai thác từng xe."
+              note="Nguồn: assignments.vehicle_id + vehicles + bookings.total_amount. Cho biết xe nào tạo ra doanh thu cao nhất."
             >
               {vehicleRevenue.length === 0 ? (
                 <EmptyChart text="Chưa có dữ liệu thu nhập theo xe." />
@@ -583,7 +634,7 @@ export default function AccountingReportsTab() {
 
             <ChartCard
               title="7) Mức sử dụng tài xế"
-              note="Nguồn: assignments.driver_id + drivers + bookings.total_km. Biểu đồ hiển thị tất cả tài xế và tổng số km mà từng tài xế đã chạy."
+              note="Nguồn: assignments.driver_id + drivers + bookings.total_km. Biểu đồ hiển thị tổng số km mà từng tài xế đã chạy."
             >
               {driverUtilization.length === 0 ? (
                 <EmptyChart text="Chưa có dữ liệu mức sử dụng tài xế." />
@@ -597,6 +648,158 @@ export default function AccountingReportsTab() {
                       <Tooltip formatter={(value) => formatKm(Number(value ?? 0))} />
                       <Legend />
                       <Bar dataKey="value" name="Tổng km" fill="#7c3aed" radius={[0, 6, 6, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ChartCard>
+
+            <ChartCard
+              title="8) Doanh thu theo loại xe"
+              note="Biểu đồ chiến lược cho doanh nghiệp: cho biết loại xe nào tạo doanh thu nhiều nhất để hỗ trợ quyết định đầu tư đội xe."
+            >
+              {revenueByVehicleType.length === 0 ? (
+                <EmptyChart text="Chưa có dữ liệu doanh thu theo loại xe." />
+              ) : (
+                <div style={{ width: '100%', height: 320 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={revenueByVehicleType}
+                        dataKey="value"
+                        nameKey="label"
+                        outerRadius={110}
+                        label
+                      >
+                        {revenueByVehicleType.map((entry, index) => (
+                          <Cell
+                            key={`${entry.label}-${index}`}
+                            fill={PIE_COLORS[index % PIE_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ChartCard>
+
+            <ChartCard
+              title="9) Direct vs Partner revenue"
+              note="Cho biết doanh thu đến từ khách trực tiếp hay công ty đối tác. Đây là chart rất hữu ích để theo dõi cơ cấu nguồn doanh thu."
+            >
+              {revenueBySource.length === 0 ? (
+                <EmptyChart text="Chưa có dữ liệu doanh thu theo nguồn booking." />
+              ) : (
+                <div style={{ width: '100%', height: 320 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={revenueBySource}
+                        dataKey="value"
+                        nameKey="label"
+                        outerRadius={110}
+                        label
+                      >
+                        {revenueBySource.map((entry, index) => (
+                          <Cell
+                            key={`${entry.label}-${index}`}
+                            fill={PIE_COLORS[index % PIE_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => formatCurrency(Number(value ?? 0))} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ChartCard>
+
+            <ChartCard
+              title="10) Doanh thu trung bình mỗi booking"
+              note="Cho biết giá trị trung bình của một booking theo thời gian. Rất hữu ích để theo dõi chất lượng doanh thu, không chỉ số lượng booking."
+            >
+              {avgRevenueOverTime.length === 0 ? (
+                <EmptyChart text="Chưa có dữ liệu doanh thu trung bình mỗi booking." />
+              ) : (
+                <div style={{ width: '100%', height: 320 }}>
+                  <ResponsiveContainer>
+                    <LineChart
+                      data={avgRevenueOverTime}
+                      margin={{ top: 8, right: 16, left: 28, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="label"
+                        tickFormatter={formatTimeAxisLabel}
+                        interval={avgRevenueTimeAxisInterval}
+                        minTickGap={16}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        width={84}
+                        tick={{ fontSize: 12 }}
+                        tickFormatter={(value) => Number(value ?? 0).toLocaleString('vi-VN')}
+                      />
+                      <Tooltip
+                        formatter={(value) => formatCurrency(Number(value ?? 0))}
+                        labelFormatter={(label) => formatTimeTooltipLabel(String(label))}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        name="Doanh thu TB / booking"
+                        stroke="#2563eb"
+                        strokeWidth={3}
+                        dot={{ r: 4 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </ChartCard>
+
+            <ChartCard
+              title="11) Tỷ lệ hủy booking theo thời gian"
+              note="Cho biết tỷ lệ booking bị hủy theo thời gian. Đây là KPI quan trọng để theo dõi chất lượng vận hành và độ ổn định nguồn khách."
+            >
+              {cancellationRateOverTime.length === 0 ? (
+                <EmptyChart text="Chưa có dữ liệu tỷ lệ hủy booking." />
+              ) : (
+                <div style={{ width: '100%', height: 320 }}>
+                  <ResponsiveContainer>
+                    <BarChart
+                      data={cancellationRateOverTime}
+                      margin={{ top: 8, right: 16, left: 20, bottom: 8 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="label"
+                        tickFormatter={formatTimeAxisLabel}
+                        interval={cancelRateAxisInterval}
+                        minTickGap={16}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis
+                        unit="%"
+                        width={52}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip
+                        formatter={(value) => `${Number(value ?? 0).toFixed(1)} %`}
+                        labelFormatter={(label) => formatTimeTooltipLabel(String(label))}
+                      />
+                      <Legend />
+                      <Bar
+                        dataKey="value"
+                        name="Tỷ lệ hủy"
+                        fill="#ef4444"
+                        radius={[6, 6, 0, 0]}
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
