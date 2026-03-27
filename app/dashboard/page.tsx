@@ -85,6 +85,13 @@ export default function DashboardPage() {
                   Đi tới module Kế toán
                 </Link>
               )}
+
+              {profile && canAccessMenu(profile.role, 'dispatch') && (
+                <Link className="btn btn-secondary" href="/resources">
+                  Đi tới module Quản lý xe & lái xe
+                </Link>
+              )}
+
             </div>
           </div>
 

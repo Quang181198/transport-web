@@ -177,6 +177,25 @@ function buildDriversCsv(rows: DriverRecord[]) {
   return lines.join('\n')
 }
 
+function getVehicleSeatColor(seatCount?: number | null) {
+  switch (String(seatCount ?? '').trim()) {
+    case '5':
+      return '#ec4899'
+    case '7':
+      return '#3b82f6'
+    case '9':
+      return '#06b6d4'
+    case '16':
+      return '#10b981'
+    case '29':
+      return '#f59e0b'
+    case '45':
+      return '#8b5cf6'
+    default:
+      return '#94a3b8'
+  }
+}
+
 export default function DispatchResourcesTab() {
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
   const [drivers, setDrivers] = useState<DriverRecord[]>([])
@@ -604,7 +623,49 @@ export default function DispatchResourcesTab() {
                 </button>
               </div>
             </div>
-
+            <div
+              style={{
+                display: 'flex',
+                gap: 12,
+                flexWrap: 'wrap',
+                marginBottom: 16,
+              }}
+            >
+              {[
+                { value: 5, label: '5 chỗ' },
+                { value: 7, label: '7 chỗ' },
+                { value: 9, label: '9 chỗ' },
+                { value: 16, label: '16 chỗ' },
+                { value: 29, label: '29 chỗ' },
+                { value: 45, label: '45 chỗ' },
+                { value: 0, label: 'Khác / chưa rõ' },
+              ].map((item) => (
+                <div
+                  key={`${item.value}-${item.label}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '6px 10px',
+                    borderRadius: 999,
+                    background: '#f8fafc',
+                    border: '1px solid #e5e7eb',
+                    fontSize: 13,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 999,
+                      display: 'inline-block',
+                      background: getVehicleSeatColor(item.value || null),
+                    }}
+                  />
+                  <span>{item.label}</span>
+                </div>
+              ))}
+            </div>
             <div className="grid-2">
               <div className="field">
                 <label className="label">Plate number</label>
@@ -754,7 +815,28 @@ export default function DispatchResourcesTab() {
                     <tr key={item.id}>
                       <td>{item.plate_number}</td>
                       <td>{item.vehicle_name || '-'}</td>
-                      <td>{item.seat_count || 0}</td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            fontWeight: 700,
+                            color: getVehicleSeatColor(item.seat_count),
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: 999,
+                              display: 'inline-block',
+                              background: getVehicleSeatColor(item.seat_count),
+                            }}
+                          />
+                          <span>{item.seat_count || 0}</span>
+                        </span>
+                      </td>
                       <td>{item.is_active ? 'Active' : 'Inactive'}</td>
                       <td>
                         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>

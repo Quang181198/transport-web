@@ -5,9 +5,8 @@ import AuthGuard from '@/components/auth/auth-guard'
 import AppShell from '@/components/layout/app-shell'
 import DispatchGantt from '@/components/dispatch/dispatch-gantt'
 import DispatchBookingsTab from '@/components/dispatch/dispatch-bookings-tab'
-import DispatchResourcesTab from '@/components/dispatch/dispatch-resources-tab'
 
-type DispatchTab = 'gantt' | 'bookings' | 'resources'
+type DispatchTab = 'gantt' | 'bookings'
 
 export default function DispatchPage() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
@@ -22,7 +21,7 @@ export default function DispatchPage() {
     <AuthGuard allowedRoles={['admin', 'director', 'sale']}>
       <AppShell
         title="Dispatch"
-        subtitle="Gantt chart, booking list, and vehicle/driver resources"
+        subtitle="Gantt chart & booking operations"
         activeMenu="dispatch"
       >
         <div
@@ -58,18 +57,6 @@ export default function DispatchPage() {
           >
             Booking list
           </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab('resources')}
-            className="btn btn-secondary"
-            style={{
-              background: activeTab === 'resources' ? '#dbeafe' : undefined,
-              borderColor: activeTab === 'resources' ? '#93c5fd' : undefined,
-            }}
-          >
-            Vehicles & drivers
-          </button>
         </div>
 
         {activeTab === 'gantt' && (
@@ -94,8 +81,6 @@ export default function DispatchPage() {
             onOpenGanttMonth={openGanttMonth}
           />
         )}
-
-        {activeTab === 'resources' && <DispatchResourcesTab />}
       </AppShell>
     </AuthGuard>
   )
