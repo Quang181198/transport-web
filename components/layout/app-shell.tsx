@@ -28,10 +28,8 @@ const navItems: Array<{
   { href: '/dashboard', label: 'Dashboard', icon: '🏠', key: 'dashboard' },
   { href: '/bookings/new', label: 'New Booking', icon: '📝', key: 'bookings' },
   { href: '/dispatch', label: 'Dispatch', icon: '🚐', key: 'dispatch' },
-
-  // ✅ NEW MODULE
   { href: '/resources', label: 'Resources', icon: '🧰', key: 'dispatch' },
-
+  { href: '/services', label: 'Services', icon: '🧭', key: 'dispatch' },
   { href: '/accounting', label: 'Accounting', icon: '📊', key: 'accounting' },
 ]
 
@@ -58,7 +56,7 @@ export default function AppShell({
       }
     }
 
-    loadProfile()
+    void loadProfile()
 
     return () => {
       mounted = false

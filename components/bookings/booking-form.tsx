@@ -15,6 +15,37 @@ type SaveBookingResult = {
   assignmentId: string
 }
 
+type ServicePackageListItem = {
+  id: string
+  name: string
+  category: string
+  durationDays: number
+  vehicleType: string
+  isActive: boolean
+}
+
+type ServicePackageLeg = {
+  id: string
+  seqNo: number
+  dayNo: number
+  pickupTime: string
+  dropoffTime: string
+  itinerary: string
+  distanceKm: number
+  note: string
+  extraAmount: number
+}
+
+type ServicePackageDetail = {
+  id: string
+  name: string
+  category: string
+  durationDays: number
+  vehicleType: string
+  isActive: boolean
+  legs: ServicePackageLeg[]
+}
+
 function formatDateVN(value: string) {
   if (!value) return ''
 
@@ -65,6 +96,31 @@ function createEmptyLeg(seqNo = 1): Leg {
     distanceKm: 0,
     note: '',
     extraAmount: 0,
+  }
+}
+
+function addDays(baseDate: string, daysToAdd: number) {
+  if (!baseDate) return ''
+  const date = new Date(`${baseDate}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return ''
+  date.setDate(date.getDate() + daysToAdd)
+  return date.toISOString().slice(0, 10)
+}
+
+function getCategoryLabel(category?: string) {
+  switch ((category || '').trim()) {
+    case 'du_lich':
+      return 'Du lịch'
+    case 'mien_bac':
+      return 'Miền Bắc'
+    case 'dong_tay_bac':
+      return 'Đông / Tây Bắc'
+    case 'du_lich_lao':
+      return 'Du lịch Lào'
+    case 'du_lich_bien':
+      return 'Du lịch biển'
+    default:
+      return category?.trim() || '-'
   }
 }
 
@@ -150,6 +206,16 @@ export default function BookingForm() {
   const [partnerCompanies, setPartnerCompanies] = useState<PartnerCompanyRecord[]>([])
   const [partnerCompaniesLoading, setPartnerCompaniesLoading] = useState(false)
 
+  const [servicePackages, setServicePackages] = useState<ServicePackageListItem[]>([])
+  const [servicePackagesLoading, setServicePackagesLoading] = useState(false)
+  const [serviceSearchInput, setServiceSearchInput] = useState('')
+  const [serviceSearchKeyword, setServiceSearchKeyword] = useState('')
+  const [selectedServicePackageId, setSelectedServicePackageId] = useState('')
+  const [selectedServicePackageDetail, setSelectedServicePackageDetail] =
+    useState<ServicePackageDetail | null>(null)
+  const [serviceDetailLoading, setServiceDetailLoading] = useState(false)
+  const [applyingTemplate, setApplyingTemplate] = useState(false)
+
   const [legs, setLegs] = useState<Leg[]>([createEmptyLeg(1)])
 
   const [lastSavedBookingId, setLastSavedBookingId] = useState<string | null>(null)
@@ -195,8 +261,104 @@ export default function BookingForm() {
       }
     }
 
-    loadPartnerCompanies()
+    void loadPartnerCompanies()
   }, [])
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setServiceSearchKeyword(serviceSearchInput.trim())
+    }, 300)
+
+    return () => window.clearTimeout(timer)
+  }, [serviceSearchInput])
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    async function loadServicePackages() {
+      try {
+        setServicePackagesLoading(true)
+
+        const params = new URLSearchParams()
+        params.set('activeOnly', 'true')
+        if (serviceSearchKeyword) {
+          params.set('search', serviceSearchKeyword)
+        }
+
+        const res = await fetch(`/api/service-packages?${params.toString()}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const json = await res.json().catch(() => null)
+
+        if (!res.ok) {
+          throw new Error(json?.error || 'Không thể tải gói dịch vụ')
+        }
+
+        const nextPackages = Array.isArray(json?.data) ? json.data : []
+        setServicePackages(nextPackages)
+
+        if (
+          selectedServicePackageId &&
+          !nextPackages.some((item: ServicePackageListItem) => item.id === selectedServicePackageId)
+        ) {
+          setSelectedServicePackageId('')
+          setSelectedServicePackageDetail(null)
+        }
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') return
+        console.error(error)
+        setServicePackages([])
+      } finally {
+        if (!controller.signal.aborted) {
+          setServicePackagesLoading(false)
+        }
+      }
+    }
+
+    void loadServicePackages()
+
+    return () => controller.abort()
+  }, [serviceSearchKeyword, selectedServicePackageId])
+
+  useEffect(() => {
+    if (!selectedServicePackageId) {
+      setSelectedServicePackageDetail(null)
+      return
+    }
+
+    const controller = new AbortController()
+
+    async function loadSelectedServicePackage() {
+      try {
+        setServiceDetailLoading(true)
+
+        const res = await fetch(`/api/service-packages/${selectedServicePackageId}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const json = await res.json().catch(() => null)
+
+        if (!res.ok) {
+          throw new Error(json?.error || 'Không thể tải chi tiết gói dịch vụ')
+        }
+
+        setSelectedServicePackageDetail((json?.data || null) as ServicePackageDetail | null)
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') return
+        console.error(error)
+        setSelectedServicePackageDetail(null)
+      } finally {
+        if (!controller.signal.aborted) {
+          setServiceDetailLoading(false)
+        }
+      }
+    }
+
+    void loadSelectedServicePackage()
+
+    return () => controller.abort()
+  }, [selectedServicePackageId])
 
   function markDirty() {
     setHasUnsavedChanges(true)
@@ -222,6 +384,8 @@ export default function BookingForm() {
     setNotes('')
     setBookingSource('direct')
     setPartnerCompanyId('')
+    setSelectedServicePackageId('')
+    setSelectedServicePackageDetail(null)
     setLegs([createEmptyLeg(1)])
     setHasUnsavedChanges(false)
   }
@@ -337,6 +501,38 @@ export default function BookingForm() {
     }
 
     return saveBooking()
+  }
+
+  async function applyServiceTemplate() {
+    if (!selectedServicePackageDetail) {
+      alert('Vui lòng chọn gói dịch vụ trước khi áp dụng lịch trình mẫu')
+      return
+    }
+
+    try {
+      setApplyingTemplate(true)
+
+      const nextLegs = selectedServicePackageDetail.legs.map((item, index) => ({
+        seqNo: index + 1,
+        tripDate: startDate ? addDays(startDate, Math.max(item.dayNo - 1, 0)) : '',
+        pickupTime: item.pickupTime || '',
+        dropoffTime: item.dropoffTime || '',
+        itinerary: item.itinerary || '',
+        distanceKm: Number(item.distanceKm || 0),
+        note: item.note || '',
+        extraAmount: Number(item.extraAmount || 0),
+      }))
+
+      setLegs(nextLegs.length > 0 ? nextLegs : [createEmptyLeg(1)])
+
+      if (selectedServicePackageDetail.vehicleType) {
+        setVehicleType(selectedServicePackageDetail.vehicleType)
+      }
+
+      markDirty()
+    } finally {
+      setApplyingTemplate(false)
+    }
   }
 
   async function handleGeneratePdf() {
@@ -681,6 +877,99 @@ export default function BookingForm() {
         <div className="field">
           <label className="label">Tổng km tự tính</label>
           <input className="input" value={totalKm} readOnly />
+        </div>
+      </div>
+
+      <div
+        style={{
+          marginTop: 20,
+          padding: 16,
+          border: '1px solid #e5e7eb',
+          borderRadius: 14,
+          background: '#f8fafc',
+          display: 'grid',
+          gap: 14,
+        }}
+      >
+        <div>
+          <div className="section-title" style={{ marginBottom: 4 }}>
+            Gợi ý lịch trình từ gói dịch vụ
+          </div>
+          <div style={{ fontSize: 13, color: '#64748b' }}>
+            Chọn gói có sẵn để đổ nhanh itinerary vào booking hiện tại.
+          </div>
+        </div>
+
+        <div className="grid-2">
+          <div className="field">
+            <label className="label">Tìm gói dịch vụ</label>
+            <input
+              className="input"
+              placeholder="Tìm theo tên gói, nhóm dịch vụ, loại xe..."
+              value={serviceSearchInput}
+              onChange={(e) => setServiceSearchInput(e.target.value)}
+            />
+          </div>
+
+          <div className="field">
+            <label className="label">Chọn gói dịch vụ</label>
+            <select
+              className="select"
+              value={selectedServicePackageId}
+              disabled={servicePackagesLoading}
+              onChange={(e) => {
+                setSelectedServicePackageId(e.target.value)
+              }}
+            >
+              <option value="">
+                {servicePackagesLoading ? 'Đang tải gói dịch vụ...' : '-- Chọn gói dịch vụ --'}
+              </option>
+              {servicePackages.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {selectedServicePackageDetail && (
+          <div
+            style={{
+              display: 'grid',
+              gap: 10,
+              padding: 14,
+              borderRadius: 12,
+              background: '#ffffff',
+              border: '1px solid #e5e7eb',
+            }}
+          >
+            <div style={{ fontWeight: 700, color: '#0f172a' }}>
+              {selectedServicePackageDetail.name}
+            </div>
+            <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>
+              {getCategoryLabel(selectedServicePackageDetail.category)} •{' '}
+              {selectedServicePackageDetail.durationDays} ngày • Xe gợi ý:{' '}
+              {selectedServicePackageDetail.vehicleType || '-'} •{' '}
+              {selectedServicePackageDetail.legs.length} chặng mẫu
+            </div>
+            <div style={{ fontSize: 13, color: '#475569' }}>
+              Khi áp dụng, hệ thống sẽ đổ các chặng mẫu vào bảng lịch trình bên dưới. Nếu đã chọn ngày khởi hành, hệ thống sẽ tự map ngày cho từng chặng theo Day 1 / Day 2 / Day 3...
+            </div>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={applyServiceTemplate}
+            disabled={
+              !selectedServicePackageId || !selectedServicePackageDetail || serviceDetailLoading || applyingTemplate
+            }
+          >
+            {applyingTemplate ? 'Đang áp dụng...' : 'Áp dụng lịch trình mẫu'}
+          </button>
         </div>
       </div>
 

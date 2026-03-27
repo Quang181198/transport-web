@@ -54,12 +54,21 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       icon: '🚐',
       accent: 'linear-gradient(135deg, #f7fcfa 0%, #eef8f3 100%)',
     })
+
     items.push({
       href: '/resources',
       title: 'Resources',
       description: 'Quản lý xe, lái xe, import/export CSV và master data.',
       icon: '🧰',
       accent: 'linear-gradient(135deg, #fffaf5 0%, #fff3e5 100%)',
+    })
+
+    items.push({
+      href: '/services',
+      title: 'Services',
+      description: 'Quản lý gói dịch vụ và lịch trình mẫu để gợi ý nhanh khi tạo booking.',
+      icon: '🧭',
+      accent: 'linear-gradient(135deg, #f7f7ff 0%, #eeefff 100%)',
     })
   }
 
@@ -110,7 +119,8 @@ export default function DashboardPage() {
 
   const companyTaxCode = companyInfo.taxCode || companyInfo.tax_code || '0105819117'
   const companyPhone = companyInfo.phone || companyInfo.hotline || '03 83 58 66 86'
-  const companyHotline = companyInfo.customerHotline || companyInfo.hotlineCskh || '0915.915.264'
+  const companyHotline =
+    companyInfo.customerHotline || companyInfo.hotlineCskh || '0915.915.264'
   const companyEmail = companyInfo.email || 'hdtransportravel@gmail.com'
   const companyEmailAlt =
     companyInfo.emailAlt || companyInfo.email_alt || 'sale.hdtransport@gmail.com'
