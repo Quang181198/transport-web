@@ -42,7 +42,7 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       title: 'New Booking',
       description: 'Tạo booking mới, nhập lịch trình và lưu assignment draft.',
       icon: '📝',
-      accent: 'linear-gradient(135deg, #f8fbff 0%, #edf5ff 100%)',
+      accent: 'linear-gradient(135deg, #f8fbff 0%, #eef6ff 100%)',
     })
   }
 
@@ -52,14 +52,14 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       title: 'Dispatch',
       description: 'Điều độ vận hành bằng Gantt chart và booking list.',
       icon: '🚐',
-      accent: 'linear-gradient(135deg, #f7fcfa 0%, #edf8f3 100%)',
+      accent: 'linear-gradient(135deg, #f7fcfa 0%, #eef8f3 100%)',
     })
     items.push({
       href: '/resources',
       title: 'Resources',
       description: 'Quản lý xe, lái xe, import/export CSV và master data.',
       icon: '🧰',
-      accent: 'linear-gradient(135deg, #fffaf4 0%, #fff2e2 100%)',
+      accent: 'linear-gradient(135deg, #fffaf5 0%, #fff3e5 100%)',
     })
   }
 
@@ -69,7 +69,7 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       title: 'Accounting',
       description: 'Theo dõi tài chính, báo cáo và dữ liệu đối tác.',
       icon: '📊',
-      accent: 'linear-gradient(135deg, #fbfaff 0%, #f4efff 100%)',
+      accent: 'linear-gradient(135deg, #fbfaff 0%, #f4f0ff 100%)',
     })
   }
 
@@ -112,12 +112,14 @@ export default function DashboardPage() {
   const companyPhone = companyInfo.phone || companyInfo.hotline || '03 83 58 66 86'
   const companyHotline = companyInfo.customerHotline || companyInfo.hotlineCskh || '0915.915.264'
   const companyEmail = companyInfo.email || 'hdtransportravel@gmail.com'
-  const companyEmailAlt = companyInfo.emailAlt || companyInfo.email_alt || 'sale.hdtransport@gmail.com'
+  const companyEmailAlt =
+    companyInfo.emailAlt || companyInfo.email_alt || 'sale.hdtransport@gmail.com'
   const companyAddress =
     companyInfo.address ||
     'Số 2, ngách 168/80/18, đường Phan Trọng Tuệ, xã Đại Thanh, TP. Hà Nội'
   const companyWebsite = companyInfo.website || 'www.hdtransport.vn'
-  const transportLicense = companyInfo.transportLicense || companyInfo.transport_license || '887/GPKDVT'
+  const transportLicense =
+    companyInfo.transportLicense || companyInfo.transport_license || '887/GPKDVT'
   const internationalLicense =
     companyInfo.internationalLicense || companyInfo.international_license || '179/GPQT'
 
@@ -146,83 +148,52 @@ export default function DashboardPage() {
         <div style={{ display: 'grid', gap: 20 }}>
           <section
             style={{
-              position: 'relative',
-              overflow: 'hidden',
               borderRadius: 28,
-              padding: 28,
-              background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 54%, #f5f7fb 100%)',
-              border: '1px solid #dbe7f5',
-              boxShadow: '0 20px 50px rgba(15, 23, 42, 0.06)',
+              padding: '36px 28px',
+              background: 'linear-gradient(180deg, #fbfdff 0%, #f4f8fc 100%)',
+              border: '1px solid #e2e8f0',
+              boxShadow: '0 18px 45px rgba(15, 23, 42, 0.05)',
             }}
           >
             <div
               style={{
-                position: 'absolute',
-                inset: 0,
-                background:
-                  'radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 24%), radial-gradient(circle at bottom left, rgba(14,165,233,0.08), transparent 24%)',
-                pointerEvents: 'none',
-              }}
-            />
-
-            <div
-              style={{
-                position: 'relative',
                 display: 'grid',
-                gap: 18,
+                gap: 14,
+                justifyItems: 'center',
+                textAlign: 'center',
               }}
             >
-              <div
+              <h1
                 style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  width: 'fit-content',
-                  padding: '8px 14px',
-                  borderRadius: 999,
-                  border: '1px solid #d9e6f5',
-                  background: 'rgba(255,255,255,0.72)',
-                  color: '#31506f',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  letterSpacing: 0.2,
-                  backdropFilter: 'blur(8px)',
+                  margin: 0,
+                  fontSize: 32,
+                  lineHeight: 1.15,
+                  fontWeight: 800,
+                  color: '#0f172a',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  width: '100%',
+                }}
+                title="Trung tâm điều hướng hiện đại cho vận hành, điều độ và dữ liệu doanh nghiệp"
+              >
+                Trung tâm điều hướng hiện đại cho vận hành, điều độ và dữ liệu doanh nghiệp
+              </h1>
+
+              <p
+                style={{
+                  margin: 0,
+                  maxWidth: 860,
+                  color: '#64748b',
+                  fontSize: 15,
+                  lineHeight: 1.75,
+                  fontWeight: 400,
                 }}
               >
-                <span>H&amp;D Brand Overview</span>
-                <span style={{ opacity: 0.5 }}>•</span>
-                <span>Internal Navigation Console</span>
-              </div>
-
-              <div style={{ display: 'grid', gap: 12 }}>
-                <h3
-                  style={{
-                    margin: 0,
-                    fontSize: 34,
-                    lineHeight: 1.2,
-                    fontWeight: 800,
-                    maxWidth: 860,
-                    color: '#14263d',
-                    textWrap: 'balance',
-                  }}
-                >
-                  Trung tâm điều hướng hiện đại cho vận hành, điều độ và dữ liệu doanh nghiệp.
-                </h3>
-
-                <div
-                  style={{
-                    margin: 0,
-                    maxWidth: 880,
-                    color: '#4b647d',
-                    fontSize: 15,
-                    lineHeight: 1.8,
-                  }}
-                >
-                  Dashboard chỉ giữ vai trò overview: hiển thị thương hiệu H&amp;D,
-                  điều hướng nhanh tới từng module và tóm tắt hồ sơ doanh nghiệp để dùng
-                  nhất quán cho nội bộ, báo giá và điều hành.
-                </div>
-              </div>
+                Dashboard chỉ giữ vai trò overview: hiển thị thương hiệu H&amp;D,
+                điều hướng nhanh tới từng module và tóm tắt hồ sơ doanh nghiệp để dùng
+                nhất quán cho nội bộ, báo giá và điều hành.
+              </p>
             </div>
           </section>
 
@@ -244,12 +215,17 @@ export default function DashboardPage() {
               }}
             >
               <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 0.6 }}>
-                  QUICK ACCESS
-                </div>
-                <h3 style={{ margin: '8px 0 0', fontSize: 24, color: '#0f172a' }}>
+                <h2
+                  style={{
+                    margin: 0,
+                    fontSize: 18,
+                    lineHeight: 1.4,
+                    fontWeight: 600,
+                    color: '#1e293b',
+                  }}
+                >
                   Đi tới đúng module chỉ trong một lần click
-                </h3>
+                </h2>
               </div>
 
               <div
@@ -264,36 +240,54 @@ export default function DashboardPage() {
                     key={item.href}
                     href={item.href}
                     style={{
-                      textDecoration: 'none',
-                      color: '#0f172a',
-                      borderRadius: 22,
-                      padding: 18,
-                      background: item.accent,
-                      border: '1px solid rgba(148, 163, 184, 0.18)',
-                      boxShadow: '0 10px 24px rgba(15, 23, 42, 0.04)',
                       display: 'grid',
-                      gap: 10,
-                      minHeight: 150,
+                      gap: 12,
+                      textDecoration: 'none',
+                      padding: 18,
+                      minHeight: 156,
+                      borderRadius: 20,
+                      border: '1px solid #e5e7eb',
+                      background: item.accent,
+                      color: '#0f172a',
+                      boxShadow: '0 10px 24px rgba(15, 23, 42, 0.04)',
                     }}
                   >
                     <div
                       style={{
-                        width: 44,
-                        height: 44,
+                        width: 46,
+                        height: 46,
                         borderRadius: 14,
                         display: 'grid',
                         placeItems: 'center',
-                        background: 'rgba(255,255,255,0.82)',
+                        background: 'rgba(255,255,255,0.72)',
+                        border: '1px solid rgba(226,232,240,0.9)',
                         fontSize: 22,
-                        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.72)',
                       }}
                     >
                       {item.icon}
                     </div>
 
-                    <div style={{ fontSize: 18, fontWeight: 800 }}>{item.title}</div>
-                    <div style={{ fontSize: 14, lineHeight: 1.65, color: '#334155' }}>
-                      {item.description}
+                    <div style={{ display: 'grid', gap: 6 }}>
+                      <div
+                        style={{
+                          fontSize: 16,
+                          lineHeight: 1.35,
+                          fontWeight: 600,
+                          color: '#0f172a',
+                        }}
+                      >
+                        {item.title}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 14,
+                          lineHeight: 1.65,
+                          color: '#475569',
+                          fontWeight: 400,
+                        }}
+                      >
+                        {item.description}
+                      </div>
                     </div>
                   </Link>
                 ))}
@@ -307,53 +301,69 @@ export default function DashboardPage() {
                 borderRadius: 24,
                 padding: 22,
                 boxShadow: '0 16px 40px rgba(15, 23, 42, 0.05)',
-                display: 'grid',
-                gap: 14,
               }}
             >
-              <div>
-                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 0.6 }}>
-                  TODAY FOCUS
-                </div>
-                <h3 style={{ margin: '8px 0 0', fontSize: 24, color: '#0f172a' }}>
-                  Gợi ý kiểm tra nhanh trước khi vào vận hành
-                </h3>
-              </div>
-
-              {[
-                'Kiểm tra booking mới cần điều độ sang Gantt chart.',
-                'Đối chiếu lại xe và lái xe đang active trong module Resources.',
-                'Xác nhận các đơn partner đã đầy đủ thông tin đối tác và PDF.',
-                'Theo dõi báo cáo tài chính và doanh thu trong module Accounting.',
-              ].map((item, index) => (
-                <div
-                  key={item}
+              <div style={{ marginBottom: 16 }}>
+                <h2
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: '36px 1fr',
-                    gap: 12,
-                    alignItems: 'start',
-                    padding: '14px 0',
-                    borderTop: index === 0 ? 'none' : '1px solid #eef2f7',
+                    margin: 0,
+                    fontSize: 18,
+                    lineHeight: 1.4,
+                    fontWeight: 600,
+                    color: '#1e293b',
                   }}
                 >
+                  Gợi ý vận hành ngắn gọn cho đội ngũ nội bộ
+                </h2>
+              </div>
+
+              <div style={{ display: 'grid', gap: 12 }}>
+                {[
+                  'Ưu tiên kiểm tra Gantt chart trước khi xác nhận điều xe cho booking mới.',
+                  'Theo dõi assignment trùng xe hoặc trùng lái xe để xử lý sớm trong ngày.',
+                  'Kiểm tra dữ liệu công ty dùng chung để báo giá và điều hành luôn đồng nhất.',
+                ].map((item, index) => (
                   <div
+                    key={`dashboard-focus-${index}`}
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 999,
                       display: 'grid',
-                      placeItems: 'center',
-                      background: '#eef4ff',
-                      color: '#315dba',
-                      fontWeight: 800,
+                      gridTemplateColumns: '28px 1fr',
+                      gap: 12,
+                      alignItems: 'start',
+                      padding: '14px 14px',
+                      borderRadius: 16,
+                      background: '#f8fafc',
+                      border: '1px solid #e2e8f0',
                     }}
                   >
-                    {index + 1}
+                    <div
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: 999,
+                        display: 'grid',
+                        placeItems: 'center',
+                        background: '#e8f1fb',
+                        color: '#335d8a',
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {index + 1}
+                    </div>
+                    <div
+                      style={{
+                        color: '#475569',
+                        fontSize: 14,
+                        lineHeight: 1.65,
+                        fontWeight: 400,
+                      }}
+                    >
+                      {item}
+                    </div>
                   </div>
-                  <div style={{ color: '#334155', lineHeight: 1.7 }}>{item}</div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </section>
 
@@ -366,13 +376,18 @@ export default function DashboardPage() {
               boxShadow: '0 16px 40px rgba(15, 23, 42, 0.05)',
             }}
           >
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 0.6 }}>
-                COMPANY PROFILE
-              </div>
-              <h3 style={{ margin: '8px 0 0', fontSize: 24, color: '#0f172a' }}>
-                Hồ sơ doanh nghiệp dùng chung cho dashboard và PDF
-              </h3>
+            <div style={{ marginBottom: 18 }}>
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 18,
+                  lineHeight: 1.4,
+                  fontWeight: 600,
+                  color: '#1e293b',
+                }}
+              >
+                Hồ sơ doanh nghiệp dùng chung cho nội bộ, báo giá và điều hành
+              </h2>
             </div>
 
             <div
@@ -386,37 +401,48 @@ export default function DashboardPage() {
                 <div
                   key={item.label}
                   style={{
-                    borderRadius: 20,
-                    border: '1px solid #e2e8f0',
-                    background: '#ffffff',
-                    padding: 18,
                     display: 'grid',
-                    gridTemplateColumns: '40px 1fr',
+                    gridTemplateColumns: '42px 1fr',
                     gap: 12,
                     alignItems: 'start',
+                    padding: 16,
+                    borderRadius: 18,
+                    background: '#fbfcfe',
+                    border: '1px solid #e5e7eb',
                   }}
                 >
                   <div
                     style={{
-                      width: 40,
-                      height: 40,
+                      width: 42,
+                      height: 42,
                       borderRadius: 14,
-                      background: '#eef4ff',
                       display: 'grid',
                       placeItems: 'center',
+                      background: '#f1f5f9',
                       fontSize: 18,
                     }}
                   >
                     {item.icon}
                   </div>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 13, color: '#64748b', marginBottom: 6 }}>{item.label}</div>
+
+                  <div style={{ display: 'grid', gap: 4 }}>
                     <div
                       style={{
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        color: '#64748b',
+                        fontWeight: 500,
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 15,
+                        lineHeight: 1.65,
                         color: '#0f172a',
-                        fontWeight: 700,
-                        lineHeight: 1.6,
-                        overflowWrap: 'anywhere',
+                        fontWeight: 500,
+                        wordBreak: 'break-word',
                       }}
                     >
                       {item.value}
