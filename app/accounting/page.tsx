@@ -13,7 +13,7 @@ export default function AccountingPage() {
   const [activeTab, setActiveTab] = useState<AccountingTab>('bookings')
 
   return (
-    <AuthGuard allowedRoles={['admin', 'director', 'accounting']}>
+    <AuthGuard allowedRoles={['admin', 'manager', 'accountant']}>
       <AppShell
         title="Kế toán"
         subtitle="Danh sách booking tài chính, danh mục công ty đối tác và báo cáo vận hành - doanh thu"

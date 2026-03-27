@@ -62,11 +62,17 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       icon: '🧰',
       accent: 'linear-gradient(135deg, #fffaf5 0%, #fff3e5 100%)',
     })
+  }
 
+  if (
+    profile &&
+    ['admin', 'manager', 'sales', 'operator'].includes(profile.role)
+  ) {
     items.push({
       href: '/services',
       title: 'Services',
-      description: 'Quản lý gói dịch vụ và lịch trình mẫu để gợi ý nhanh khi tạo booking.',
+      description:
+        'Quản lý gói dịch vụ và lịch trình mẫu để gợi ý nhanh khi tạo booking.',
       icon: '🧭',
       accent: 'linear-gradient(135deg, #f7f7ff 0%, #eeefff 100%)',
     })

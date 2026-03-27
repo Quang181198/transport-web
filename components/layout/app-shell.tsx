@@ -1,12 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CompanyLogo from './company-logo'
 import { getCurrentSessionProfile, signOutUser } from '@/lib/auth/session'
 import {
-  canAccessMenu,
   getRoleLabel,
   type AppMenuKey,
   type SessionProfile,
@@ -63,14 +62,6 @@ export default function AppShell({
     }
   }, [])
 
-  const visibleNavItems = useMemo(() => {
-    if (!profile) {
-      return navItems.filter((item) => item.key === 'dashboard')
-    }
-
-    return navItems.filter((item) => canAccessMenu(profile.role, item.key))
-  }, [profile])
-
   async function handleLogout() {
     try {
       await signOutUser()
@@ -93,7 +84,7 @@ export default function AppShell({
         </div>
 
         <nav className="nav-group">
-          {visibleNavItems.map((item) => (
+          {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}

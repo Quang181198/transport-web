@@ -9,7 +9,7 @@ export default function NewBookingPage() {
   const router = useRouter()
 
   return (
-    <AuthGuard allowedRoles={['admin', 'director', 'sale']}>
+    <AuthGuard allowedRoles={['admin', 'manager', 'sales', 'operator']}>
       <AppShell
         title="New Booking"
         subtitle="Enter group info, itinerary, and pricing"

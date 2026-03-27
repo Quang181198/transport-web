@@ -6,7 +6,7 @@ import DispatchResourcesTab from '@/components/dispatch/dispatch-resources-tab'
 
 export default function ResourcesPage() {
   return (
-    <AuthGuard allowedRoles={['admin', 'director']}>
+    <AuthGuard allowedRoles={['admin', 'manager', 'operator']}>
       <AppShell
         title="Resources"
         subtitle="Quản lý xe và lái xe"

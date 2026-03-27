@@ -1,24 +1,60 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import AuthGuard from '@/components/auth/auth-guard'
 import AppShell from '@/components/layout/app-shell'
 import DispatchGantt from '@/components/dispatch/dispatch-gantt'
 import DispatchBookingsTab from '@/components/dispatch/dispatch-bookings-tab'
+import { getCurrentSessionProfile } from '@/lib/auth/session'
+import type { SessionProfile } from '@/lib/types/auth'
 
 type DispatchTab = 'gantt' | 'bookings'
 
 export default function DispatchPage() {
   const [month, setMonth] = useState(new Date().toISOString().slice(0, 7))
+  const [profile, setProfile] = useState<SessionProfile | null>(null)
   const [activeTab, setActiveTab] = useState<DispatchTab>('gantt')
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadProfile() {
+      try {
+        const nextProfile = await getCurrentSessionProfile()
+        if (!mounted) return
+
+        setProfile(nextProfile)
+
+        if (nextProfile?.role === 'sales') {
+          setActiveTab('bookings')
+        }
+      } catch (error) {
+        console.error(error)
+      }
+    }
+
+    void loadProfile()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
 
   function openGanttMonth(nextMonth: string) {
     setMonth(nextMonth)
-    setActiveTab('gantt')
+
+    if (profile?.role !== 'sales') {
+      setActiveTab('gantt')
+    }
   }
 
+  const canViewGantt =
+    profile?.role === 'admin' ||
+    profile?.role === 'manager' ||
+    profile?.role === 'operator'
+
   return (
-    <AuthGuard allowedRoles={['admin', 'director', 'sale']}>
+    <AuthGuard allowedRoles={['admin', 'manager', 'sales', 'operator']}>
       <AppShell
         title="Dispatch"
         subtitle="Gantt chart & booking operations"
@@ -34,17 +70,19 @@ export default function DispatchPage() {
             flexWrap: 'wrap',
           }}
         >
-          <button
-            type="button"
-            onClick={() => setActiveTab('gantt')}
-            className="btn btn-secondary"
-            style={{
-              background: activeTab === 'gantt' ? '#dbeafe' : undefined,
-              borderColor: activeTab === 'gantt' ? '#93c5fd' : undefined,
-            }}
-          >
-            Gantt chart
-          </button>
+          {canViewGantt && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('gantt')}
+              className="btn btn-secondary"
+              style={{
+                background: activeTab === 'gantt' ? '#dbeafe' : undefined,
+                borderColor: activeTab === 'gantt' ? '#93c5fd' : undefined,
+              }}
+            >
+              Gantt chart
+            </button>
+          )}
 
           <button
             type="button"
@@ -59,7 +97,7 @@ export default function DispatchPage() {
           </button>
         </div>
 
-        {activeTab === 'gantt' && (
+        {canViewGantt && activeTab === 'gantt' && (
           <>
             <div className="mb-4">
               <label>Month:</label>

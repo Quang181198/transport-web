@@ -29,6 +29,7 @@ export default function AuthGuard({ children, allowedRoles }: Props) {
         }
 
         if (allowedRoles && !allowedRoles.includes(profile.role)) {
+          window.alert('Bạn không có quyền truy cập module này.')
           router.replace('/dashboard')
           return
         }
@@ -53,7 +54,7 @@ export default function AuthGuard({ children, allowedRoles }: Props) {
       }
     }
 
-    checkAccess()
+    void checkAccess()
 
     return () => {
       mounted = false
