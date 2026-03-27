@@ -256,7 +256,6 @@ export default function DispatchGantt({ month }: { month: string }) {
   const [driverIdInput, setDriverIdInput] = useState('')
   const [statusInput, setStatusInput] = useState<AssignmentStatus>('pending')
   const [duplicateWarnings, setDuplicateWarnings] = useState<string[]>([])
-  const [searchCode, setSearchCode] = useState('')
 
   const visibleDays = useMemo(() => getVisibleDays(month), [month])
   const leftColumnWidth = 180
@@ -270,16 +269,6 @@ export default function DispatchGantt({ month }: { month: string }) {
   const mainScrollRef = useRef<HTMLDivElement | null>(null)
   const stickyScrollRef = useRef<HTMLDivElement | null>(null)
   const syncingScrollRef = useRef<'main' | 'sticky' | null>(null)
-
-  const filteredData = useMemo(() => {
-    const keyword = searchCode.trim().toLowerCase()
-
-    if (!keyword) {
-      return data
-    }
-
-    return data.filter((item) => item.booking_code.toLowerCase().includes(keyword))
-  }, [data, searchCode])
 
   const selectedSummary = useMemo(
     () => data.find((item) => item.id === selectedId) ?? null,
@@ -430,11 +419,11 @@ export default function DispatchGantt({ month }: { month: string }) {
   const conflictMap = useMemo(() => {
     const map = new Map<string, ConflictInfo>()
 
-    filteredData.forEach((item) => {
+    data.forEach((item) => {
       map.set(item.id, { hasConflict: false, messages: [] })
     })
 
-    const withPreview = filteredData.map((item) => {
+    const withPreview = data.map((item) => {
       const preview = previewMap.get(item.id)
       return {
         ...item,
@@ -496,7 +485,7 @@ export default function DispatchGantt({ month }: { month: string }) {
     }
 
     return map
-  }, [filteredData, previewMap])
+  }, [data, previewMap])
 
   const selectedWarnings = useMemo(() => {
     if (!selected) return []
@@ -506,6 +495,98 @@ export default function DispatchGantt({ month }: { month: string }) {
     ]
     return Array.from(new Set(combined))
   }, [selected, conflictMap, duplicateWarnings])
+
+  const availability = useMemo(() => {
+    const empty = {
+      matchingAvailableVehicles: [] as VehicleRecord[],
+      otherAvailableVehicles: [] as VehicleRecord[],
+      busyVehicles: [] as Array<VehicleRecord & { bookingCodes: string[] }>,
+      availableDrivers: [] as DriverRecord[],
+      busyDrivers: [] as Array<DriverRecord & { bookingCodes: string[] }>,
+    }
+
+    if (!selected) {
+      return empty
+    }
+
+    const selectedStart = selected.start_datetime
+    const selectedEnd = selected.end_datetime
+
+    if (!selectedStart || !selectedEnd) {
+      const matchingAvailableVehicles = vehicles.filter(
+        (vehicle) => String(vehicle.seat_count || '') === String(selected.vehicle_type || ''),
+      )
+      const otherAvailableVehicles = vehicles.filter(
+        (vehicle) => String(vehicle.seat_count || '') !== String(selected.vehicle_type || ''),
+      )
+
+      return {
+        matchingAvailableVehicles,
+        otherAvailableVehicles,
+        busyVehicles: [],
+        availableDrivers: drivers,
+        busyDrivers: [],
+      }
+    }
+
+    const busyVehicleMap = new Map<string, string[]>()
+    const busyDriverMap = new Map<string, string[]>()
+
+    data.forEach((item) => {
+      if (item.id === selected.id) return
+      if (item.status === 'canceled') return
+      if (!overlaps(selectedStart, selectedEnd, item.start_datetime, item.end_datetime)) return
+
+      if (item.vehicle_id) {
+        const nextCodes = busyVehicleMap.get(item.vehicle_id) || []
+        nextCodes.push(item.booking_code)
+        busyVehicleMap.set(item.vehicle_id, nextCodes)
+      }
+
+      if (item.driver_id) {
+        const nextCodes = busyDriverMap.get(item.driver_id) || []
+        nextCodes.push(item.booking_code)
+        busyDriverMap.set(item.driver_id, nextCodes)
+      }
+    })
+
+    const matchingAvailableVehicles = vehicles.filter(
+      (vehicle) =>
+        !busyVehicleMap.has(vehicle.id) &&
+        String(vehicle.seat_count || '') === String(selected.vehicle_type || ''),
+    )
+
+    const otherAvailableVehicles = vehicles.filter(
+      (vehicle) =>
+        !busyVehicleMap.has(vehicle.id) &&
+        String(vehicle.seat_count || '') !== String(selected.vehicle_type || ''),
+    )
+
+    const busyVehicles = vehicles
+      .filter((vehicle) => busyVehicleMap.has(vehicle.id))
+      .map((vehicle) => ({
+        ...vehicle,
+        bookingCodes: Array.from(new Set(busyVehicleMap.get(vehicle.id) || [])),
+      }))
+
+    const availableDrivers = drivers.filter((driver) => !busyDriverMap.has(driver.id))
+
+    const busyDrivers = drivers
+      .filter((driver) => busyDriverMap.has(driver.id))
+      .map((driver) => ({
+        ...driver,
+        bookingCodes: Array.from(new Set(busyDriverMap.get(driver.id) || [])),
+      }))
+
+    return {
+      matchingAvailableVehicles,
+      otherAvailableVehicles,
+      busyVehicles,
+      availableDrivers,
+      busyDrivers,
+    }
+  }, [selected, data, vehicles, drivers])
+
 
 const canDragAssignment = useCallback(
   (
@@ -873,28 +954,6 @@ const canDragAssignment = useCallback(
           ))}
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            gap: 12,
-            alignItems: 'center',
-            flexWrap: 'wrap',
-            marginBottom: 10,
-          }}
-        >
-          <input
-            className="input"
-            placeholder="Tìm theo code đoàn..."
-            value={searchCode}
-            onChange={(event) => setSearchCode(event.target.value)}
-            style={{ maxWidth: 280 }}
-          />
-
-          <div style={{ color: '#64748b', fontSize: 13 }}>
-            Hiển thị {filteredData.length}/{data.length} đoàn
-          </div>
-        </div>
-
         <div style={{ color: '#64748b', fontSize: 13 }}>
           Double click để mở panel. Drag để đổi giờ. Thả chuột sẽ hiện xác nhận. Snap: 30 phút. Đơn in_progress/completed/canceled bị khóa.
         </div>
@@ -915,15 +974,11 @@ const canDragAssignment = useCallback(
         {!loading && errorText && (
           <div style={{ padding: 16, color: 'crimson' }}>{errorText}</div>
         )}
-        {!loading && !errorText && filteredData.length === 0 && (
-          <div style={{ padding: 16 }}>
-            {searchCode.trim()
-              ? `Không tìm thấy code đoàn phù hợp trong tháng ${month}.`
-              : 'Chưa có dữ liệu điều hành trong tháng này.'}
-          </div>
+        {!loading && !errorText && data.length === 0 && (
+          <div style={{ padding: 16 }}>Chưa có dữ liệu điều hành trong tháng này.</div>
         )}
 
-        {!loading && !errorText && filteredData.length > 0 && (
+        {!loading && !errorText && data.length > 0 && (
           <div style={{ minWidth: ganttContentWidth }}>
             <div
               style={{
@@ -970,7 +1025,7 @@ const canDragAssignment = useCallback(
               ))}
             </div>
 
-            {filteredData.map((item, rowIndex) => {
+            {data.map((item, rowIndex) => {
               const preview = previewMap.get(item.id)
               const start = preview?.start || item.start_datetime || `${item.start_date}T00:00:00`
               const end =
@@ -1250,10 +1305,29 @@ const canDragAssignment = useCallback(
                     }}
                   >
                     <option value="">-- Chọn xe --</option>
-                    {vehicles.map((vehicle) => (
+
+                    {availability.matchingAvailableVehicles.map((vehicle) => (
                       <option key={vehicle.id} value={vehicle.id}>
-                        {vehicle.plate_number}
+                        {`🟢 ${vehicle.plate_number}`}
                         {vehicle.vehicle_name ? ` - ${vehicle.vehicle_name}` : ''}
+                        {vehicle.seat_count ? ` (${vehicle.seat_count} chỗ)` : ''}
+                      </option>
+                    ))}
+
+                    {availability.otherAvailableVehicles.map((vehicle) => (
+                      <option key={vehicle.id} value={vehicle.id}>
+                        {`⚪ ${vehicle.plate_number}`}
+                        {vehicle.vehicle_name ? ` - ${vehicle.vehicle_name}` : ''}
+                        {vehicle.seat_count ? ` (${vehicle.seat_count} chỗ)` : ''}
+                      </option>
+                    ))}
+
+                    {availability.busyVehicles.map((vehicle) => (
+                      <option key={vehicle.id} value={vehicle.id}>
+                        {`🔴 ${vehicle.plate_number}`}
+                        {vehicle.vehicle_name ? ` - ${vehicle.vehicle_name}` : ''}
+                        {vehicle.seat_count ? ` (${vehicle.seat_count} chỗ)` : ''}
+                        {vehicle.bookingCodes.length > 0 ? ` • bận: ${vehicle.bookingCodes.join(', ')}` : ''}
                       </option>
                     ))}
                   </select>
@@ -1273,10 +1347,19 @@ const canDragAssignment = useCallback(
                     }}
                   >
                     <option value="">-- Chọn lái xe --</option>
-                    {drivers.map((driver) => (
+
+                    {availability.availableDrivers.map((driver) => (
                       <option key={driver.id} value={driver.id}>
-                        {driver.full_name}
+                        {`🟢 ${driver.full_name}`}
                         {driver.phone ? ` - ${driver.phone}` : ''}
+                      </option>
+                    ))}
+
+                    {availability.busyDrivers.map((driver) => (
+                      <option key={driver.id} value={driver.id}>
+                        {`🔴 ${driver.full_name}`}
+                        {driver.phone ? ` - ${driver.phone}` : ''}
+                        {driver.bookingCodes.length > 0 ? ` • bận: ${driver.bookingCodes.join(', ')}` : ''}
                       </option>
                     ))}
                   </select>
