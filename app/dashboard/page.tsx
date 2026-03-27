@@ -24,12 +24,7 @@ type QuickAction = {
   title: string
   description: string
   icon: string
-}
-
-type ServiceTile = {
-  title: string
-  description: string
-  badge: string
+  accent: string
 }
 
 type CompanyFact = {
@@ -37,39 +32,6 @@ type CompanyFact = {
   value: string
   icon: string
 }
-
-const serviceTiles: ServiceTile[] = [
-  {
-    title: 'Thuê xe du lịch',
-    description: 'Biển, Đông Tây Bắc, lân cận Hà Nội, xuyên Việt và quốc tế.',
-    badge: 'Tour & tuyến',
-  },
-  {
-    title: 'Thuê xe lễ hội',
-    description: 'Du xuân, lễ hội du lịch và các lịch trình mùa vụ ngắn ngày.',
-    badge: 'Seasonal',
-  },
-  {
-    title: 'Thuê xe công tác',
-    description: 'Đi tỉnh, làm việc nội thành, ngoại thành, khu công nghiệp, quay phim.',
-    badge: 'Business',
-  },
-  {
-    title: 'Thuê xe cưới hỏi',
-    description: 'Xe hoa và xe đưa đón nghi lễ cho đoàn cưới, họ hàng, khách mời.',
-    badge: 'Event',
-  },
-  {
-    title: 'Hợp đồng dài hạn',
-    description: 'Đưa đón công nhân, học sinh, chuyên gia và cán bộ nhân viên.',
-    badge: 'Contract',
-  },
-  {
-    title: 'Đội xe đa cấu hình',
-    description: 'Các nhóm xe 4, 7, 16, 29, 35, 45 chỗ phục vụ nhiều nhu cầu khác nhau.',
-    badge: 'Fleet mix',
-  },
-]
 
 function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
   const items: QuickAction[] = []
@@ -80,6 +42,7 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       title: 'New Booking',
       description: 'Tạo booking mới, nhập lịch trình và lưu assignment draft.',
       icon: '📝',
+      accent: 'linear-gradient(135deg, #f8fbff 0%, #edf5ff 100%)',
     })
   }
 
@@ -89,12 +52,14 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       title: 'Dispatch',
       description: 'Điều độ vận hành bằng Gantt chart và booking list.',
       icon: '🚐',
+      accent: 'linear-gradient(135deg, #f7fcfa 0%, #edf8f3 100%)',
     })
     items.push({
       href: '/resources',
       title: 'Resources',
       description: 'Quản lý xe, lái xe, import/export CSV và master data.',
       icon: '🧰',
+      accent: 'linear-gradient(135deg, #fffaf4 0%, #fff2e2 100%)',
     })
   }
 
@@ -104,6 +69,7 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       title: 'Accounting',
       description: 'Theo dõi tài chính, báo cáo và dữ liệu đối tác.',
       icon: '📊',
+      accent: 'linear-gradient(135deg, #fbfaff 0%, #f4efff 100%)',
     })
   }
 
@@ -174,25 +140,19 @@ export default function DashboardPage() {
     <AuthGuard>
       <AppShell
         title="Dashboard"
-        subtitle="Tổng quan thương hiệu, điều hướng nhanh và thông tin doanh nghiệp"
+        subtitle="Tổng quan thương hiệu, điều hướng nhanh và hồ sơ doanh nghiệp"
         activeMenu="dashboard"
       >
-        <div
-          style={{
-            display: 'grid',
-            gap: 20,
-          }}
-        >
+        <div style={{ display: 'grid', gap: 20 }}>
           <section
             style={{
               position: 'relative',
               overflow: 'hidden',
               borderRadius: 28,
               padding: 28,
-              background:
-                'linear-gradient(135deg, #0f172a 0%, #1d4ed8 50%, #38bdf8 100%)',
-              color: '#fff',
-              boxShadow: '0 24px 80px rgba(15, 23, 42, 0.18)',
+              background: 'linear-gradient(135deg, #f8fbff 0%, #eef4ff 54%, #f5f7fb 100%)',
+              border: '1px solid #dbe7f5',
+              boxShadow: '0 20px 50px rgba(15, 23, 42, 0.06)',
             }}
           >
             <div
@@ -200,7 +160,7 @@ export default function DashboardPage() {
                 position: 'absolute',
                 inset: 0,
                 background:
-                  'radial-gradient(circle at top right, rgba(255,255,255,0.22), transparent 28%), radial-gradient(circle at bottom left, rgba(255,255,255,0.14), transparent 24%)',
+                  'radial-gradient(circle at top right, rgba(59,130,246,0.12), transparent 24%), radial-gradient(circle at bottom left, rgba(14,165,233,0.08), transparent 24%)',
                 pointerEvents: 'none',
               }}
             />
@@ -209,148 +169,58 @@ export default function DashboardPage() {
               style={{
                 position: 'relative',
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.7fr) minmax(320px, 1fr)',
-                gap: 24,
+                gap: 18,
               }}
             >
-              <div style={{ display: 'grid', gap: 18 }}>
-                <div
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    width: 'fit-content',
-                    padding: '8px 14px',
-                    borderRadius: 999,
-                    border: '1px solid rgba(255,255,255,0.18)',
-                    background: 'rgba(255,255,255,0.12)',
-                    backdropFilter: 'blur(10px)',
-                    fontSize: 13,
-                    fontWeight: 700,
-                    letterSpacing: 0.2,
-                  }}
-                >
-                  <span>2026 Ops Console</span>
-                  <span style={{ opacity: 0.75 }}>•</span>
-                  <span>HD Transport Management System</span>
-                </div>
-
-                <div style={{ display: 'grid', gap: 12 }}>
-                  <h3
-                    style={{
-                      margin: 0,
-                      fontSize: 34,
-                      lineHeight: 1.15,
-                      fontWeight: 800,
-                      maxWidth: 760,
-                    }}
-                  >
-                    Trung tâm điều hướng hiện đại cho vận hành, điều độ và dữ liệu doanh nghiệp.
-                  </h3>
-
-                  <div
-                    style={{
-                      margin: 0,
-                      maxWidth: 760,
-                      color: 'rgba(255,255,255,0.88)',
-                      fontSize: 15,
-                      lineHeight: 1.7,
-                    }}
-                  >
-                    Dashboard chỉ giữ vai trò overview: hiển thị thương hiệu H&amp;D,
-                    điều hướng nhanh sang các module chính và tổng hợp những năng lực cốt lõi
-                    từ website doanh nghiệp như dịch vụ, quy mô đội xe và hồ sơ pháp lý.
-                  </div>
-                </div>
-
-                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                  {quickActions.map((item) => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 10,
-                        padding: '12px 16px',
-                        borderRadius: 18,
-                        textDecoration: 'none',
-                        color: '#0f172a',
-                        background: '#fff',
-                        fontWeight: 700,
-                        boxShadow: '0 10px 30px rgba(15, 23, 42, 0.18)',
-                      }}
-                    >
-                      <span>{item.icon}</span>
-                      <span>{item.title}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
               <div
                 style={{
-                  alignSelf: 'stretch',
-                  display: 'grid',
-                  gap: 14,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  width: 'fit-content',
+                  padding: '8px 14px',
+                  borderRadius: 999,
+                  border: '1px solid #d9e6f5',
+                  background: 'rgba(255,255,255,0.72)',
+                  color: '#31506f',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  letterSpacing: 0.2,
+                  backdropFilter: 'blur(8px)',
                 }}
               >
-                <div
+                <span>H&amp;D Brand Overview</span>
+                <span style={{ opacity: 0.5 }}>•</span>
+                <span>Internal Navigation Console</span>
+              </div>
+
+              <div style={{ display: 'grid', gap: 12 }}>
+                <h3
                   style={{
-                    borderRadius: 24,
-                    padding: 20,
-                    background: 'rgba(255,255,255,0.12)',
-                    border: '1px solid rgba(255,255,255,0.18)',
-                    backdropFilter: 'blur(12px)',
+                    margin: 0,
+                    fontSize: 34,
+                    lineHeight: 1.2,
+                    fontWeight: 800,
+                    maxWidth: 860,
+                    color: '#14263d',
+                    textWrap: 'balance',
                   }}
                 >
-                  <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 10 }}>
-                    COMPANY SNAPSHOT
-                  </div>
-                  <div style={{ fontSize: 24, fontWeight: 800, lineHeight: 1.3 }}>
-                    H&amp;D Transport
-                  </div>
-                  <div
-                    style={{
-                      marginTop: 10,
-                      fontSize: 14,
-                      color: 'rgba(255,255,255,0.88)',
-                      lineHeight: 1.7,
-                    }}
-                  >
-                    Dịch vụ thuê xe du lịch, công tác, cưới hỏi, lễ hội và hợp đồng dài hạn
-                    với đội xe 4–45 chỗ.
-                  </div>
-                </div>
+                  Trung tâm điều hướng hiện đại cho vận hành, điều độ và dữ liệu doanh nghiệp.
+                </h3>
 
                 <div
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                    gap: 12,
+                    margin: 0,
+                    maxWidth: 880,
+                    color: '#4b647d',
+                    fontSize: 15,
+                    lineHeight: 1.8,
                   }}
                 >
-                  {[
-                    { label: 'Vehicle mix', value: '4 / 7 / 16 / 29 / 35 / 45', icon: '🚘' },
-                    { label: 'Hotline', value: companyHotline, icon: '📞' },
-                    { label: 'Transport license', value: transportLicense, icon: '📄' },
-                    { label: 'International permit', value: internationalLicense, icon: '🌍' },
-                  ].map((item) => (
-                    <div
-                      key={item.label}
-                      style={{
-                        borderRadius: 20,
-                        padding: 16,
-                        background: 'rgba(255,255,255,0.12)',
-                        border: '1px solid rgba(255,255,255,0.18)',
-                        backdropFilter: 'blur(12px)',
-                      }}
-                    >
-                      <div style={{ fontSize: 22, marginBottom: 8 }}>{item.icon}</div>
-                      <div style={{ fontSize: 12, opacity: 0.78 }}>{item.label}</div>
-                      <div style={{ marginTop: 4, fontSize: 15, fontWeight: 800 }}>{item.value}</div>
-                    </div>
-                  ))}
+                  Dashboard chỉ giữ vai trò overview: hiển thị thương hiệu H&amp;D,
+                  điều hướng nhanh tới từng module và tóm tắt hồ sơ doanh nghiệp để dùng
+                  nhất quán cho nội bộ, báo giá và điều hành.
                 </div>
               </div>
             </div>
@@ -359,101 +229,34 @@ export default function DashboardPage() {
           <section
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
-              gap: 16,
-            }}
-          >
-            {[
-              {
-                title: 'Core modules',
-                value: String(quickActions.length),
-                description: 'Các module sẵn sàng theo quyền người dùng hiện tại.',
-                accent: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-              },
-              {
-                title: 'Service groups',
-                value: '5+',
-                description: 'Du lịch, lễ hội, công tác, cưới hỏi, hợp đồng dài hạn.',
-                accent: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-              },
-              {
-                title: 'Fleet classes',
-                value: '6',
-                description: 'Nhóm xe từ 4 chỗ đến 45 chỗ theo website công ty.',
-                accent: 'linear-gradient(135deg, #ecfeff 0%, #cffafe 100%)',
-              },
-              {
-                title: 'Company profile',
-                value: 'Ready',
-                description: 'Thông tin doanh nghiệp sẵn sàng dùng cho dashboard và PDF.',
-                accent: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-              },
-            ].map((card) => (
-              <div
-                key={card.title}
-                className="section-card"
-                style={{
-                  padding: 20,
-                  borderRadius: 24,
-                  background: card.accent,
-                  border: '1px solid rgba(148, 163, 184, 0.18)',
-                  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.05)',
-                }}
-              >
-                <div style={{ color: '#475569', fontSize: 13, fontWeight: 700 }}>
-                  {card.title}
-                </div>
-                <div
-                  style={{
-                    marginTop: 12,
-                    fontSize: 28,
-                    lineHeight: 1,
-                    fontWeight: 800,
-                    color: '#0f172a',
-                  }}
-                >
-                  {card.value}
-                </div>
-                <div style={{ marginTop: 10, color: '#475569', fontSize: 14, lineHeight: 1.7 }}>
-                  {card.description}
-                </div>
-              </div>
-            ))}
-          </section>
-
-          <section
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(0, 1.25fr) minmax(360px, 0.95fr)',
+              gridTemplateColumns: 'minmax(0, 1.25fr) minmax(0, 0.75fr)',
               gap: 20,
+              alignItems: 'start',
             }}
           >
-            <div className="section-card" style={{ borderRadius: 24, padding: 24 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 12,
-                  marginBottom: 18,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <div>
-                  <h3 className="section-title" style={{ marginBottom: 6 }}>
-                    Điều hướng nhanh theo module
-                  </h3>
-                  <div style={{ color: '#64748b', fontSize: 14 }}>
-                    Thiết kế dạng card hiện đại để truy cập module nhanh, rõ vai trò.
-                  </div>
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 24,
+                padding: 22,
+                boxShadow: '0 16px 40px rgba(15, 23, 42, 0.05)',
+              }}
+            >
+              <div style={{ marginBottom: 16 }}>
+                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 0.6 }}>
+                  QUICK ACCESS
                 </div>
+                <h3 style={{ margin: '8px 0 0', fontSize: 24, color: '#0f172a' }}>
+                  Đi tới đúng module chỉ trong một lần click
+                </h3>
               </div>
 
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
-                  gap: 16,
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gap: 14,
                 }}
               >
                 {quickActions.map((item) => (
@@ -462,119 +265,120 @@ export default function DashboardPage() {
                     href={item.href}
                     style={{
                       textDecoration: 'none',
-                      color: 'inherit',
-                      borderRadius: 24,
-                      border: '1px solid #e2e8f0',
-                      padding: 20,
-                      background: '#fff',
+                      color: '#0f172a',
+                      borderRadius: 22,
+                      padding: 18,
+                      background: item.accent,
+                      border: '1px solid rgba(148, 163, 184, 0.18)',
                       boxShadow: '0 10px 24px rgba(15, 23, 42, 0.04)',
                       display: 'grid',
                       gap: 10,
+                      minHeight: 150,
                     }}
                   >
                     <div
                       style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 16,
+                        width: 44,
+                        height: 44,
+                        borderRadius: 14,
                         display: 'grid',
                         placeItems: 'center',
-                        background: '#eff6ff',
+                        background: 'rgba(255,255,255,0.82)',
                         fontSize: 22,
+                        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.72)',
                       }}
                     >
                       {item.icon}
                     </div>
-                    <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>
-                      {item.title}
-                    </div>
-                    <div style={{ color: '#64748b', fontSize: 14, lineHeight: 1.7 }}>
+
+                    <div style={{ fontSize: 18, fontWeight: 800 }}>{item.title}</div>
+                    <div style={{ fontSize: 14, lineHeight: 1.65, color: '#334155' }}>
                       {item.description}
-                    </div>
-                    <div
-                      style={{
-                        marginTop: 4,
-                        color: '#2563eb',
-                        fontWeight: 700,
-                        fontSize: 14,
-                      }}
-                    >
-                      Mở module →
                     </div>
                   </Link>
                 ))}
               </div>
             </div>
 
-            <div className="section-card" style={{ borderRadius: 24, padding: 24 }}>
-              <div style={{ marginBottom: 18 }}>
-                <h3 className="section-title" style={{ marginBottom: 6 }}>
-                  Năng lực dịch vụ từ website công ty
-                </h3>
-                <div style={{ color: '#64748b', fontSize: 14 }}>
-                  Các nhóm dịch vụ có thể dùng làm nền cho dashboard, sales template và reporting.
+            <div
+              style={{
+                background: '#ffffff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 24,
+                padding: 22,
+                boxShadow: '0 16px 40px rgba(15, 23, 42, 0.05)',
+                display: 'grid',
+                gap: 14,
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 0.6 }}>
+                  TODAY FOCUS
                 </div>
+                <h3 style={{ margin: '8px 0 0', fontSize: 24, color: '#0f172a' }}>
+                  Gợi ý kiểm tra nhanh trước khi vào vận hành
+                </h3>
               </div>
 
-              <div style={{ display: 'grid', gap: 12 }}>
-                {serviceTiles.map((item) => (
+              {[
+                'Kiểm tra booking mới cần điều độ sang Gantt chart.',
+                'Đối chiếu lại xe và lái xe đang active trong module Resources.',
+                'Xác nhận các đơn partner đã đầy đủ thông tin đối tác và PDF.',
+                'Theo dõi báo cáo tài chính và doanh thu trong module Accounting.',
+              ].map((item, index) => (
+                <div
+                  key={item}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '36px 1fr',
+                    gap: 12,
+                    alignItems: 'start',
+                    padding: '14px 0',
+                    borderTop: index === 0 ? 'none' : '1px solid #eef2f7',
+                  }}
+                >
                   <div
-                    key={item.title}
                     style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 999,
                       display: 'grid',
-                      gap: 6,
-                      borderRadius: 18,
-                      border: '1px solid #e2e8f0',
-                      background: '#f8fafc',
-                      padding: 16,
+                      placeItems: 'center',
+                      background: '#eef4ff',
+                      color: '#315dba',
+                      fontWeight: 800,
                     }}
                   >
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        gap: 8,
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <div style={{ fontWeight: 800, color: '#0f172a' }}>{item.title}</div>
-                      <div
-                        style={{
-                          borderRadius: 999,
-                          padding: '4px 10px',
-                          background: '#e0f2fe',
-                          color: '#0369a1',
-                          fontSize: 12,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {item.badge}
-                      </div>
-                    </div>
-                    <div style={{ color: '#64748b', fontSize: 14, lineHeight: 1.65 }}>
-                      {item.description}
-                    </div>
+                    {index + 1}
                   </div>
-                ))}
-              </div>
+                  <div style={{ color: '#334155', lineHeight: 1.7 }}>{item}</div>
+                </div>
+              ))}
             </div>
           </section>
 
-          <section className="section-card" style={{ borderRadius: 24, padding: 24 }}>
-            <div style={{ marginBottom: 18 }}>
-              <h3 className="section-title" style={{ marginBottom: 6 }}>
-                Hồ sơ doanh nghiệp tích hợp từ website
-              </h3>
-              <div style={{ color: '#64748b', fontSize: 14 }}>
-                Các thông tin này có thể tái sử dụng cho dashboard, quotation PDF, dispatch order và tài liệu nội bộ.
+          <section
+            style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: 24,
+              padding: 22,
+              boxShadow: '0 16px 40px rgba(15, 23, 42, 0.05)',
+            }}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <div style={{ fontSize: 12, color: '#64748b', fontWeight: 800, letterSpacing: 0.6 }}>
+                COMPANY PROFILE
               </div>
+              <h3 style={{ margin: '8px 0 0', fontSize: 24, color: '#0f172a' }}>
+                Hồ sơ doanh nghiệp dùng chung cho dashboard và PDF
+              </h3>
             </div>
 
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
                 gap: 14,
               }}
             >
@@ -582,14 +386,14 @@ export default function DashboardPage() {
                 <div
                   key={item.label}
                   style={{
-                    display: 'grid',
-                    gridTemplateColumns: '40px minmax(0, 1fr)',
-                    gap: 14,
-                    alignItems: 'start',
                     borderRadius: 20,
                     border: '1px solid #e2e8f0',
-                    background: '#fff',
+                    background: '#ffffff',
                     padding: 18,
+                    display: 'grid',
+                    gridTemplateColumns: '40px 1fr',
+                    gap: 12,
+                    alignItems: 'start',
                   }}
                 >
                   <div
@@ -597,9 +401,9 @@ export default function DashboardPage() {
                       width: 40,
                       height: 40,
                       borderRadius: 14,
+                      background: '#eef4ff',
                       display: 'grid',
                       placeItems: 'center',
-                      background: '#f1f5f9',
                       fontSize: 18,
                     }}
                   >
@@ -612,7 +416,7 @@ export default function DashboardPage() {
                         color: '#0f172a',
                         fontWeight: 700,
                         lineHeight: 1.6,
-                        wordBreak: 'break-word',
+                        overflowWrap: 'anywhere',
                       }}
                     >
                       {item.value}
