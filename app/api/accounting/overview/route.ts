@@ -47,6 +47,9 @@ type PartnerCompanyRow = {
   company_name: string | null
 }
 
+const DEFAULT_PAGE_SIZE = 100
+const MAX_PAGE_SIZE = 100
+
 function incrementMap(map: Map<string, number>, key: string, amount = 1) {
   map.set(key, (map.get(key) || 0) + amount)
 }
@@ -63,6 +66,12 @@ function isValidYear(year: string) {
 
 function isValidMonth(month: string) {
   return /^(0[1-9]|1[0-2])$/.test(month)
+}
+
+function parsePositiveInteger(value: string | null, fallback: number) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.floor(parsed)
 }
 
 function buildVehicleLabel(vehicle: {
@@ -122,11 +131,36 @@ function isBookingInMonth(booking: BookingRow, year: string, month: string) {
   return date.startsWith(`${year}-${month}-`)
 }
 
+function matchesSearch(
+  booking: BookingRow,
+  partnerCompanyName: string | null,
+  searchKeyword: string,
+) {
+  if (!searchKeyword) return true
+
+  return [
+    booking.booking_code,
+    booking.group_name,
+    booking.vehicle_type,
+    partnerCompanyName,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+    .includes(searchKeyword)
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url)
     const year = searchParams.get('year') || String(new Date().getFullYear())
     const month = searchParams.get('month') || 'all'
+    const searchKeyword = (searchParams.get('search') || '').trim().toLowerCase()
+    const page = parsePositiveInteger(searchParams.get('page'), 1)
+    const pageSize = Math.min(
+      parsePositiveInteger(searchParams.get('pageSize'), DEFAULT_PAGE_SIZE),
+      MAX_PAGE_SIZE,
+    )
 
     if (!isValidYear(year)) {
       return NextResponse.json({ error: 'Year không hợp lệ' }, { status: 400 })
@@ -228,12 +262,12 @@ export async function GET(req: Request) {
       item.booking_id ? bookingIdsInYear.has(item.booking_id) : false,
     )
 
-    const filteredBookings =
+    const baseBookings =
       month === 'all'
         ? bookingRows
         : bookingRows.filter((item) => isBookingInMonth(item, year, month))
 
-    const filteredBookingIds = new Set(filteredBookings.map((item) => item.id))
+    const filteredBookingIds = new Set(baseBookings.map((item) => item.id))
 
     const filteredAssignments = assignmentsInYear.filter((item) =>
       item.booking_id ? filteredBookingIds.has(item.booking_id) : false,
@@ -249,12 +283,29 @@ export async function GET(req: Request) {
     const bookingKmMap = new Map<string, number>()
     const bookingAmountMap = new Map<string, number>()
 
-    filteredBookings.forEach((booking) => {
+    baseBookings.forEach((booking) => {
       bookingKmMap.set(booking.id, Number(booking.total_km || 0))
       bookingAmountMap.set(booking.id, Number(booking.total_amount || 0))
     })
 
-    const financialBookings = filteredBookings.map((booking) => {
+    const searchedBookings = baseBookings.filter((booking) =>
+      matchesSearch(
+        booking,
+        booking.partner_company_id
+          ? partnerCompanyNameMap.get(booking.partner_company_id) || null
+          : null,
+        searchKeyword,
+      ),
+    )
+
+    const total = searchedBookings.length
+    const totalPages = total > 0 ? Math.ceil(total / pageSize) : 0
+    const normalizedPage = totalPages === 0 ? 1 : Math.min(page, totalPages)
+    const from = (normalizedPage - 1) * pageSize
+    const to = from + pageSize
+    const pagedBookings = searchedBookings.slice(from, to)
+
+    const financialBookings = pagedBookings.map((booking) => {
       const assignment = assignmentByBookingId.get(booking.id)
 
       return {
@@ -282,7 +333,7 @@ export async function GET(req: Request) {
     const revenueOverTimeMap = new Map<string, number>()
     const bookingStatusMap = new Map<string, number>()
 
-    filteredBookings.forEach((booking) => {
+    baseBookings.forEach((booking) => {
       const label =
         month === 'all'
           ? getOperationalMonthKey(booking)
@@ -373,10 +424,8 @@ export async function GET(req: Request) {
       }))
       .sort((a, b) => b.value - a.value)
 
-    // ===== NEW BUSINESS CHARTS =====
-
     const revenueByVehicleTypeMap = new Map<string, number>()
-    filteredBookings.forEach((booking) => {
+    baseBookings.forEach((booking) => {
       const vehicleType = (booking.vehicle_type || 'Unknown').trim() || 'Unknown'
       incrementMap(
         revenueByVehicleTypeMap,
@@ -388,7 +437,7 @@ export async function GET(req: Request) {
     let directRevenue = 0
     let partnerRevenue = 0
 
-    filteredBookings.forEach((booking) => {
+    baseBookings.forEach((booking) => {
       const amount = Number(booking.total_amount || 0)
 
       if (booking.booking_source === 'partner') {
@@ -399,7 +448,7 @@ export async function GET(req: Request) {
     })
 
     const avgRevenueAccumulator = new Map<string, { sum: number; count: number }>()
-    filteredBookings.forEach((booking) => {
+    baseBookings.forEach((booking) => {
       const label =
         month === 'all'
           ? getOperationalMonthKey(booking)
@@ -419,7 +468,7 @@ export async function GET(req: Request) {
       .sort((a, b) => a.label.localeCompare(b.label))
 
     const bookingById = new Map<string, BookingRow>()
-    filteredBookings.forEach((booking) => {
+    baseBookings.forEach((booking) => {
       bookingById.set(booking.id, booking)
     })
 
@@ -456,6 +505,13 @@ export async function GET(req: Request) {
       filter: {
         year,
         month,
+        search: searchKeyword,
+      },
+      pagination: {
+        page: normalizedPage,
+        pageSize,
+        total,
+        totalPages,
       },
       bookings: financialBookings,
       charts: {
@@ -474,7 +530,6 @@ export async function GET(req: Request) {
         vehicleUtilization,
         vehicleRevenue,
         driverUtilization,
-
         revenueByVehicleType: sortEntries(revenueByVehicleTypeMap),
         revenueBySource: [
           { label: 'Direct', value: directRevenue },

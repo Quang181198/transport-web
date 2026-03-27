@@ -256,6 +256,7 @@ export default function DispatchGantt({ month }: { month: string }) {
   const [driverIdInput, setDriverIdInput] = useState('')
   const [statusInput, setStatusInput] = useState<AssignmentStatus>('pending')
   const [duplicateWarnings, setDuplicateWarnings] = useState<string[]>([])
+  const [searchCode, setSearchCode] = useState('')
 
   const visibleDays = useMemo(() => getVisibleDays(month), [month])
   const leftColumnWidth = 180
@@ -269,6 +270,16 @@ export default function DispatchGantt({ month }: { month: string }) {
   const mainScrollRef = useRef<HTMLDivElement | null>(null)
   const stickyScrollRef = useRef<HTMLDivElement | null>(null)
   const syncingScrollRef = useRef<'main' | 'sticky' | null>(null)
+
+  const filteredData = useMemo(() => {
+    const keyword = searchCode.trim().toLowerCase()
+
+    if (!keyword) {
+      return data
+    }
+
+    return data.filter((item) => item.booking_code.toLowerCase().includes(keyword))
+  }, [data, searchCode])
 
   const selectedSummary = useMemo(
     () => data.find((item) => item.id === selectedId) ?? null,
@@ -419,11 +430,11 @@ export default function DispatchGantt({ month }: { month: string }) {
   const conflictMap = useMemo(() => {
     const map = new Map<string, ConflictInfo>()
 
-    data.forEach((item) => {
+    filteredData.forEach((item) => {
       map.set(item.id, { hasConflict: false, messages: [] })
     })
 
-    const withPreview = data.map((item) => {
+    const withPreview = filteredData.map((item) => {
       const preview = previewMap.get(item.id)
       return {
         ...item,
@@ -485,7 +496,7 @@ export default function DispatchGantt({ month }: { month: string }) {
     }
 
     return map
-  }, [data, previewMap])
+  }, [filteredData, previewMap])
 
   const selectedWarnings = useMemo(() => {
     if (!selected) return []
@@ -862,6 +873,28 @@ const canDragAssignment = useCallback(
           ))}
         </div>
 
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            marginBottom: 10,
+          }}
+        >
+          <input
+            className="input"
+            placeholder="Tìm theo code đoàn..."
+            value={searchCode}
+            onChange={(event) => setSearchCode(event.target.value)}
+            style={{ maxWidth: 280 }}
+          />
+
+          <div style={{ color: '#64748b', fontSize: 13 }}>
+            Hiển thị {filteredData.length}/{data.length} đoàn
+          </div>
+        </div>
+
         <div style={{ color: '#64748b', fontSize: 13 }}>
           Double click để mở panel. Drag để đổi giờ. Thả chuột sẽ hiện xác nhận. Snap: 30 phút. Đơn in_progress/completed/canceled bị khóa.
         </div>
@@ -882,11 +915,15 @@ const canDragAssignment = useCallback(
         {!loading && errorText && (
           <div style={{ padding: 16, color: 'crimson' }}>{errorText}</div>
         )}
-        {!loading && !errorText && data.length === 0 && (
-          <div style={{ padding: 16 }}>Chưa có dữ liệu điều hành trong tháng này.</div>
+        {!loading && !errorText && filteredData.length === 0 && (
+          <div style={{ padding: 16 }}>
+            {searchCode.trim()
+              ? `Không tìm thấy code đoàn phù hợp trong tháng ${month}.`
+              : 'Chưa có dữ liệu điều hành trong tháng này.'}
+          </div>
         )}
 
-        {!loading && !errorText && data.length > 0 && (
+        {!loading && !errorText && filteredData.length > 0 && (
           <div style={{ minWidth: ganttContentWidth }}>
             <div
               style={{
@@ -933,7 +970,7 @@ const canDragAssignment = useCallback(
               ))}
             </div>
 
-            {data.map((item, rowIndex) => {
+            {filteredData.map((item, rowIndex) => {
               const preview = previewMap.get(item.id)
               const start = preview?.start || item.start_datetime || `${item.start_date}T00:00:00`
               const end =

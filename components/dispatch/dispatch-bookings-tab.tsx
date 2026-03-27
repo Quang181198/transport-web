@@ -914,13 +914,6 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
               </div>
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={openGantt}
-                >
-                  Mở Gantt chart
-                </button>
 
                 <button
                   type="button"
