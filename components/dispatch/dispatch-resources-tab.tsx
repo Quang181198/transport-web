@@ -196,6 +196,16 @@ function getVehicleSeatColor(seatCount?: number | null) {
   }
 }
 
+const VEHICLE_SEAT_LEGEND = [
+  { value: 5, label: '5 chỗ' },
+  { value: 7, label: '7 chỗ' },
+  { value: 9, label: '9 chỗ' },
+  { value: 16, label: '16 chỗ' },
+  { value: 29, label: '29 chỗ' },
+  { value: 45, label: '45 chỗ' },
+  { value: 0, label: 'Khác / chưa rõ' },
+]
+
 export default function DispatchResourcesTab() {
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
   const [drivers, setDrivers] = useState<DriverRecord[]>([])
@@ -218,6 +228,10 @@ export default function DispatchResourcesTab() {
   const [importingDriverCsv, setImportingDriverCsv] = useState(false)
   const [vehicleImportResult, setVehicleImportResult] = useState<CsvImportResult | null>(null)
   const [driverImportResult, setDriverImportResult] = useState<CsvImportResult | null>(null)
+  const [showVehicleForm, setShowVehicleForm] = useState(false)
+  const [showDriverForm, setShowDriverForm] = useState(false)
+  const [vehicleSearch, setVehicleSearch] = useState('')
+  const [driverSearch, setDriverSearch] = useState('')
 
   async function loadResources() {
     try {
@@ -246,7 +260,7 @@ export default function DispatchResourcesTab() {
   }
 
   useEffect(() => {
-    loadResources()
+    void loadResources()
   }, [])
 
   const vehicleDuplicatePreview = useMemo(() => {
@@ -269,8 +283,44 @@ export default function DispatchResourcesTab() {
     })
   }, [driverForm, drivers])
 
+  const filteredVehicles = useMemo(() => {
+    const keyword = vehicleSearch.trim().toLowerCase()
+    if (!keyword) return vehicles
+
+    return vehicles.filter((item) => {
+      const haystack = [
+        item.plate_number,
+        item.vehicle_name || '',
+        String(item.seat_count || ''),
+        item.is_active ? 'active' : 'inactive',
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      return haystack.includes(keyword)
+    })
+  }, [vehicleSearch, vehicles])
+
+  const filteredDrivers = useMemo(() => {
+    const keyword = driverSearch.trim().toLowerCase()
+    if (!keyword) return drivers
+
+    return drivers.filter((item) => {
+      const haystack = [
+        item.full_name,
+        item.phone || '',
+        item.is_active ? 'active' : 'inactive',
+      ]
+        .join(' ')
+        .toLowerCase()
+
+      return haystack.includes(keyword)
+    })
+  }, [driverSearch, drivers])
+
   function startCreateVehicle() {
     setVehicleForm(emptyVehicleForm())
+    setShowVehicleForm(true)
   }
 
   function startEditVehicle(item: VehicleRecord) {
@@ -283,10 +333,12 @@ export default function DispatchResourcesTab() {
       seat_count: Number(item.seat_count || 0),
       is_active: item.is_active,
     })
+    setShowVehicleForm(true)
   }
 
   function startCreateDriver() {
     setDriverForm(emptyDriverForm())
+    setShowDriverForm(true)
   }
 
   function startEditDriver(item: DriverRecord) {
@@ -298,6 +350,17 @@ export default function DispatchResourcesTab() {
       phone: item.phone || '',
       is_active: item.is_active,
     })
+    setShowDriverForm(true)
+  }
+
+  function cancelVehicleForm() {
+    setVehicleForm(emptyVehicleForm())
+    setShowVehicleForm(false)
+  }
+
+  function cancelDriverForm() {
+    setDriverForm(emptyDriverForm())
+    setShowDriverForm(false)
   }
 
   async function saveVehicle() {
@@ -330,6 +393,7 @@ export default function DispatchResourcesTab() {
 
       await loadResources()
       setVehicleForm(emptyVehicleForm())
+      setShowVehicleForm(false)
       alert(vehicleForm.mode === 'create' ? 'Vehicle created' : 'Vehicle updated')
     } catch (error) {
       console.error(error)
@@ -374,6 +438,7 @@ export default function DispatchResourcesTab() {
 
       await loadResources()
       setDriverForm(emptyDriverForm())
+      setShowDriverForm(false)
       alert(driverForm.mode === 'create' ? 'Driver created' : 'Driver updated')
     } catch (error) {
       console.error(error)
@@ -408,6 +473,7 @@ export default function DispatchResourcesTab() {
 
       if (vehicleForm.id === item.id) {
         setVehicleForm(emptyVehicleForm())
+        setShowVehicleForm(false)
       }
 
       await loadResources()
@@ -445,6 +511,7 @@ export default function DispatchResourcesTab() {
 
       if (driverForm.id === item.id) {
         setDriverForm(emptyDriverForm())
+        setShowDriverForm(false)
       }
 
       await loadResources()
@@ -617,12 +684,21 @@ export default function DispatchResourcesTab() {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={startCreateVehicle}
+                  onClick={() => {
+                    if (showVehicleForm && vehicleForm.mode === 'create') {
+                      cancelVehicleForm()
+                      return
+                    }
+                    startCreateVehicle()
+                  }}
                 >
-                  New vehicle
+                  {showVehicleForm && vehicleForm.mode === 'create'
+                    ? 'Ẩn form tạo xe'
+                    : 'Create vehicle'}
                 </button>
               </div>
             </div>
+
             <div
               style={{
                 display: 'flex',
@@ -631,15 +707,7 @@ export default function DispatchResourcesTab() {
                 marginBottom: 16,
               }}
             >
-              {[
-                { value: 5, label: '5 chỗ' },
-                { value: 7, label: '7 chỗ' },
-                { value: 9, label: '9 chỗ' },
-                { value: 16, label: '16 chỗ' },
-                { value: 29, label: '29 chỗ' },
-                { value: 45, label: '45 chỗ' },
-                { value: 0, label: 'Khác / chưa rõ' },
-              ].map((item) => (
+              {VEHICLE_SEAT_LEGEND.map((item) => (
                 <div
                   key={`${item.value}-${item.label}`}
                   style={{
@@ -666,89 +734,137 @@ export default function DispatchResourcesTab() {
                 </div>
               ))}
             </div>
-            <div className="grid-2">
-              <div className="field">
-                <label className="label">Plate number</label>
-                <input
-                  className="input"
-                  value={vehicleForm.plate_number}
-                  onChange={(e) =>
-                    setVehicleForm((prev) => ({
-                      ...prev,
-                      plate_number: e.target.value,
-                    }))
-                  }
-                />
-              </div>
 
-              <div className="field">
-                <label className="label">Vehicle name</label>
-                <input
-                  className="input"
-                  value={vehicleForm.vehicle_name}
-                  onChange={(e) =>
-                    setVehicleForm((prev) => ({
-                      ...prev,
-                      vehicle_name: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="field">
-                <label className="label">Seat count</label>
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  value={vehicleForm.seat_count}
-                  onChange={(e) =>
-                    setVehicleForm((prev) => ({
-                      ...prev,
-                      seat_count: Number(e.target.value || 0),
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="field">
-                <label className="label">Active</label>
-                <select
-                  className="select"
-                  value={vehicleForm.is_active ? 'true' : 'false'}
-                  onChange={(e) =>
-                    setVehicleForm((prev) => ({
-                      ...prev,
-                      is_active: e.target.value === 'true',
-                    }))
-                  }
-                >
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
+            <div style={{ marginBottom: 16 }}>
+              <input
+                className="input"
+                placeholder="Search plate number, vehicle name, seat count..."
+                value={vehicleSearch}
+                onChange={(e) => setVehicleSearch(e.target.value)}
+              />
+              <div style={{ marginTop: 8, fontSize: 13, color: '#64748b' }}>
+                {filteredVehicles.length}/{vehicles.length} vehicles
               </div>
             </div>
 
-            {vehicleDuplicatePreview && (
-              <div style={{ marginTop: 12, color: '#b45309' }}>
-                Duplicate warning: this plate number already exists.
+            {showVehicleForm && (
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: 16,
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 12,
+                  background: '#f8fafc',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 10,
+                    marginBottom: 16,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>
+                    {vehicleForm.mode === 'create' ? 'Create vehicle' : 'Update vehicle'}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={cancelVehicleForm}
+                  >
+                    Đóng
+                  </button>
+                </div>
+
+                <div className="grid-2">
+                  <div className="field">
+                    <label className="label">Plate number</label>
+                    <input
+                      className="input"
+                      value={vehicleForm.plate_number}
+                      onChange={(e) =>
+                        setVehicleForm((prev) => ({
+                          ...prev,
+                          plate_number: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label className="label">Vehicle name</label>
+                    <input
+                      className="input"
+                      value={vehicleForm.vehicle_name}
+                      onChange={(e) =>
+                        setVehicleForm((prev) => ({
+                          ...prev,
+                          vehicle_name: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label className="label">Seat count</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      value={vehicleForm.seat_count}
+                      onChange={(e) =>
+                        setVehicleForm((prev) => ({
+                          ...prev,
+                          seat_count: Number(e.target.value || 0),
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label className="label">Active</label>
+                    <select
+                      className="select"
+                      value={vehicleForm.is_active ? 'true' : 'false'}
+                      onChange={(e) =>
+                        setVehicleForm((prev) => ({
+                          ...prev,
+                          is_active: e.target.value === 'true',
+                        }))
+                      }
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                {vehicleDuplicatePreview && (
+                  <div style={{ marginTop: 12, color: '#b45309' }}>
+                    Duplicate warning: this plate number already exists.
+                  </div>
+                )}
+
+                <div className="actions" style={{ marginTop: 16 }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={saveVehicle}
+                    disabled={savingVehicle}
+                  >
+                    {savingVehicle
+                      ? 'Saving...'
+                      : vehicleForm.mode === 'create'
+                        ? 'Create vehicle'
+                        : 'Update vehicle'}
+                  </button>
+                </div>
               </div>
             )}
-
-            <div className="actions" style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={saveVehicle}
-                disabled={savingVehicle}
-              >
-                {savingVehicle
-                  ? 'Saving...'
-                  : vehicleForm.mode === 'create'
-                    ? 'Create vehicle'
-                    : 'Update vehicle'}
-              </button>
-            </div>
 
             <div
               style={{
@@ -811,7 +927,7 @@ export default function DispatchResourcesTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {vehicles.map((item) => (
+                  {filteredVehicles.map((item) => (
                     <tr key={item.id}>
                       <td>{item.plate_number}</td>
                       <td>{item.vehicle_name || '-'}</td>
@@ -860,9 +976,11 @@ export default function DispatchResourcesTab() {
                       </td>
                     </tr>
                   ))}
-                  {vehicles.length === 0 && (
+                  {filteredVehicles.length === 0 && (
                     <tr>
-                      <td colSpan={5}>No vehicles found.</td>
+                      <td colSpan={5}>
+                        {vehicleSearch.trim() ? 'No vehicles match your search.' : 'No vehicles found.'}
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -897,80 +1015,135 @@ export default function DispatchResourcesTab() {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={startCreateDriver}
+                  onClick={() => {
+                    if (showDriverForm && driverForm.mode === 'create') {
+                      cancelDriverForm()
+                      return
+                    }
+                    startCreateDriver()
+                  }}
                 >
-                  New driver
+                  {showDriverForm && driverForm.mode === 'create'
+                    ? 'Ẩn form tạo lái xe'
+                    : 'Create driver'}
                 </button>
               </div>
             </div>
 
-            <div className="grid-2">
-              <div className="field">
-                <label className="label">Full name</label>
-                <input
-                  className="input"
-                  value={driverForm.full_name}
-                  onChange={(e) =>
-                    setDriverForm((prev) => ({
-                      ...prev,
-                      full_name: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="field">
-                <label className="label">Phone</label>
-                <input
-                  className="input"
-                  value={driverForm.phone}
-                  onChange={(e) =>
-                    setDriverForm((prev) => ({
-                      ...prev,
-                      phone: e.target.value,
-                    }))
-                  }
-                />
-              </div>
-
-              <div className="field">
-                <label className="label">Active</label>
-                <select
-                  className="select"
-                  value={driverForm.is_active ? 'true' : 'false'}
-                  onChange={(e) =>
-                    setDriverForm((prev) => ({
-                      ...prev,
-                      is_active: e.target.value === 'true',
-                    }))
-                  }
-                >
-                  <option value="true">Active</option>
-                  <option value="false">Inactive</option>
-                </select>
+            <div style={{ marginBottom: 16 }}>
+              <input
+                className="input"
+                placeholder="Search full name, phone, status..."
+                value={driverSearch}
+                onChange={(e) => setDriverSearch(e.target.value)}
+              />
+              <div style={{ marginTop: 8, fontSize: 13, color: '#64748b' }}>
+                {filteredDrivers.length}/{drivers.length} drivers
               </div>
             </div>
 
-            {driverDuplicatePreview && (
-              <div style={{ marginTop: 12, color: '#b45309' }}>
-                Duplicate warning: this phone number already exists.
+            {showDriverForm && (
+              <div
+                style={{
+                  marginBottom: 20,
+                  padding: 16,
+                  border: '1px solid #e5e7eb',
+                  borderRadius: 12,
+                  background: '#f8fafc',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 10,
+                    marginBottom: 16,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <div style={{ fontWeight: 700 }}>
+                    {driverForm.mode === 'create' ? 'Create driver' : 'Update driver'}
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={cancelDriverForm}
+                  >
+                    Đóng
+                  </button>
+                </div>
+
+                <div className="grid-2">
+                  <div className="field">
+                    <label className="label">Full name</label>
+                    <input
+                      className="input"
+                      value={driverForm.full_name}
+                      onChange={(e) =>
+                        setDriverForm((prev) => ({
+                          ...prev,
+                          full_name: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label className="label">Phone</label>
+                    <input
+                      className="input"
+                      value={driverForm.phone}
+                      onChange={(e) =>
+                        setDriverForm((prev) => ({
+                          ...prev,
+                          phone: e.target.value,
+                        }))
+                      }
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label className="label">Active</label>
+                    <select
+                      className="select"
+                      value={driverForm.is_active ? 'true' : 'false'}
+                      onChange={(e) =>
+                        setDriverForm((prev) => ({
+                          ...prev,
+                          is_active: e.target.value === 'true',
+                        }))
+                      }
+                    >
+                      <option value="true">Active</option>
+                      <option value="false">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                {driverDuplicatePreview && (
+                  <div style={{ marginTop: 12, color: '#b45309' }}>
+                    Duplicate warning: this phone number already exists.
+                  </div>
+                )}
+
+                <div className="actions" style={{ marginTop: 16 }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={saveDriver}
+                    disabled={savingDriver}
+                  >
+                    {savingDriver
+                      ? 'Saving...'
+                      : driverForm.mode === 'create'
+                        ? 'Create driver'
+                        : 'Update driver'}
+                  </button>
+                </div>
               </div>
             )}
-
-            <div className="actions" style={{ marginTop: 16 }}>
-              <button
-                type="button"
-                className="btn btn-primary"
-                onClick={saveDriver}
-                disabled={savingDriver}
-              >
-                {savingDriver
-                  ? 'Saving...'
-                  : driverForm.mode === 'create'
-                    ? 'Create driver'
-                    : 'Update driver'}
-              </button>
-            </div>
 
             <div
               style={{
@@ -1032,7 +1205,7 @@ export default function DispatchResourcesTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {drivers.map((item) => (
+                  {filteredDrivers.map((item) => (
                     <tr key={item.id}>
                       <td>{item.full_name}</td>
                       <td>{item.phone || '-'}</td>
@@ -1059,9 +1232,11 @@ export default function DispatchResourcesTab() {
                       </td>
                     </tr>
                   ))}
-                  {drivers.length === 0 && (
+                  {filteredDrivers.length === 0 && (
                     <tr>
-                      <td colSpan={4}>No drivers found.</td>
+                      <td colSpan={4}>
+                        {driverSearch.trim() ? 'No drivers match your search.' : 'No drivers found.'}
+                      </td>
                     </tr>
                   )}
                 </tbody>
