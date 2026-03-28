@@ -1,4 +1,6 @@
 import './globals.css'
+import { DialogProvider } from '@/lib/dialog-context'
+import DialogRenderer from '@/components/ui/dialog-renderer'
 
 export default function RootLayout({
   children,
@@ -7,7 +9,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="vi">
-      <body>{children}</body>
+      <body>
+        <DialogProvider>
+          {children}
+          <DialogRenderer />
+        </DialogProvider>
+      </body>
     </html>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { PartnerCompanyRecord } from '@/lib/types/transport'
+import { useDialog } from '@/lib/dialog-context'
 
 type PartnerCompanyFormState = {
   companyName: string
@@ -28,6 +29,7 @@ function emptyPartnerCompanyForm(): PartnerCompanyFormState {
 }
 
 export default function AccountingPartnerCompaniesTab() {
+  const { toast, confirm } = useDialog()
   const [partnerCompanies, setPartnerCompanies] = useState<PartnerCompanyRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [errorText, setErrorText] = useState('')
@@ -109,7 +111,7 @@ export default function AccountingPartnerCompaniesTab() {
 
   async function submitForm() {
     if (!form.companyName.trim()) {
-      alert('Vui lòng nhập tên công ty đối tác')
+      toast('Vui lòng nhập tên công ty đối tác', 'warning')
       return
     }
 
@@ -148,13 +150,14 @@ export default function AccountingPartnerCompaniesTab() {
 
       await loadPartnerCompanies()
       resetForm()
-      alert(editingPartnerId ? 'Đã cập nhật công ty đối tác' : 'Đã tạo công ty đối tác')
+      toast(editingPartnerId ? 'Đã cập nhật công ty đối tác' : 'Đã tạo công ty đối tác', 'success')
     } catch (error) {
       console.error(error)
-      alert(
+      toast(
         error instanceof Error
           ? error.message
           : 'Không thể lưu công ty đối tác',
+        'error',
       )
     } finally {
       setSubmitting(false)
@@ -162,7 +165,7 @@ export default function AccountingPartnerCompaniesTab() {
   }
 
   async function deleteCompany(company: PartnerCompanyRecord) {
-    const ok = window.confirm(`Xóa công ty đối tác ${company.company_name}?`)
+    const ok = await confirm(`Xóa công ty đối tác ${company.company_name}?`)
     if (!ok) return
 
     try {
@@ -180,13 +183,14 @@ export default function AccountingPartnerCompaniesTab() {
       }
 
       await loadPartnerCompanies()
-      alert('Đã xóa công ty đối tác')
+      toast('Đã xóa công ty đối tác', 'success')
     } catch (error) {
       console.error(error)
-      alert(
+      toast(
         error instanceof Error
           ? error.message
           : 'Không thể xóa công ty đối tác',
+        'error',
       )
     }
   }
@@ -226,10 +230,11 @@ export default function AccountingPartnerCompaniesTab() {
       }
     } catch (error) {
       console.error(error)
-      alert(
+      toast(
         error instanceof Error
           ? error.message
           : 'Không thể cập nhật trạng thái công ty đối tác',
+        'error',
       )
     }
   }

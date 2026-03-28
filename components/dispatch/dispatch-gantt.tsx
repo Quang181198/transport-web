@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useDialog } from '@/lib/dialog-context'
 import type {
   AssignmentStatus,
   AssignmentWithLegs,
@@ -240,6 +241,7 @@ const VEHICLE_TYPE_LEGEND = [
 ]
 
 export default function DispatchGantt({ month }: { month: string }) {
+  const { toast, confirm } = useDialog()
   const [data, setData] = useState<AssignmentSummary[]>([])
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
   const [drivers, setDrivers] = useState<DriverRecord[]>([])
@@ -354,8 +356,9 @@ export default function DispatchGantt({ month }: { month: string }) {
     } catch (error) {
       console.error(error)
       setSelectedDetail(null)
-      alert(
+      toast(
         error instanceof Error ? error.message : 'Không thể tải chi tiết assignment',
+        'error',
       )
     } finally {
       setDetailLoading(false)
@@ -761,7 +764,7 @@ const canDragAssignment = useCallback(
         return
       }
 
-      const ok = window.confirm(
+      const ok = await confirm(
         `Xác nhận cập nhật thời gian?\n\nTừ: ${formatDateTimeVN(
           releasedDrag.initialStart,
         )} → ${formatDateTimeVN(releasedDrag.initialEnd)}\nThành: ${formatDateTimeVN(
@@ -803,10 +806,11 @@ const canDragAssignment = useCallback(
         }
       } catch (error) {
         console.error(error)
-        alert(
+        toast(
           error instanceof Error
             ? error.message
             : 'Cập nhật thời gian điều hành thất bại',
+          'error',
         )
         await loadAssignments(false)
       } finally {
@@ -868,11 +872,11 @@ const canDragAssignment = useCallback(
 
   async function deleteAssignment() {
     if (!selected?.id) {
-      alert('Không tìm thấy id assignment để xóa')
+      toast('Không tìm thấy id assignment để xóa', 'warning')
       return
     }
 
-    const ok = window.confirm(`Xóa đơn ${selected.booking_code}?`)
+    const ok = await confirm(`Xóa đơn ${selected.booking_code}?`)
     if (!ok) return
 
     try {
@@ -891,13 +895,13 @@ const canDragAssignment = useCallback(
       await loadAssignments(false)
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Xóa đơn thất bại')
+      toast(error instanceof Error ? error.message : 'Xóa đơn thất bại', 'error')
     }
   }
 
   async function saveAssignment() {
     if (!selected?.id) {
-      alert('Không tìm thấy id assignment để cập nhật')
+      toast('Không tìm thấy id assignment để cập nhật', 'warning')
       return
     }
 
@@ -928,11 +932,11 @@ const canDragAssignment = useCallback(
       await loadAssignmentDetail(selected.id)
 
       if (!json?.warnings || json.warnings.length === 0) {
-        alert('Đã cập nhật điều hành thành công')
+        toast('Đã cập nhật điều hành thành công', 'success')
       }
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Cập nhật điều xe thất bại')
+      toast(error instanceof Error ? error.message : 'Cập nhật điều xe thất bại', 'error')
     } finally {
       setSaving(false)
     }

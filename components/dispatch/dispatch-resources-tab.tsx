@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useDialog } from '@/lib/dialog-context'
 
 type VehicleRecord = {
   id: string
@@ -207,6 +208,7 @@ const VEHICLE_SEAT_LEGEND = [
 ]
 
 export default function DispatchResourcesTab() {
+  const { toast, confirm } = useDialog()
   const [vehicles, setVehicles] = useState<VehicleRecord[]>([])
   const [drivers, setDrivers] = useState<DriverRecord[]>([])
   const [loading, setLoading] = useState(true)
@@ -365,12 +367,12 @@ export default function DispatchResourcesTab() {
 
   async function saveVehicle() {
     if (!vehicleForm.plate_number.trim()) {
-      alert('Vehicle plate number is required')
+      toast('Vehicle plate number is required', 'warning')
       return
     }
 
     if (vehicleDuplicatePreview) {
-      alert('Duplicate vehicle plate number')
+      toast('Duplicate vehicle plate number', 'warning')
       return
     }
 
@@ -394,10 +396,10 @@ export default function DispatchResourcesTab() {
       await loadResources()
       setVehicleForm(emptyVehicleForm())
       setShowVehicleForm(false)
-      alert(vehicleForm.mode === 'create' ? 'Vehicle created' : 'Vehicle updated')
+      toast(vehicleForm.mode === 'create' ? 'Vehicle created' : 'Vehicle updated', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Cannot save vehicle')
+      toast(error instanceof Error ? error.message : 'Cannot save vehicle', 'error')
     } finally {
       setSavingVehicle(false)
     }
@@ -405,17 +407,17 @@ export default function DispatchResourcesTab() {
 
   async function saveDriver() {
     if (!driverForm.full_name.trim()) {
-      alert('Driver full name is required')
+      toast('Driver full name is required', 'warning')
       return
     }
 
     if (!driverForm.phone.trim()) {
-      alert('Driver phone is required')
+      toast('Driver phone is required', 'warning')
       return
     }
 
     if (driverDuplicatePreview) {
-      alert('Duplicate driver phone number')
+      toast('Duplicate driver phone number', 'warning')
       return
     }
 
@@ -439,17 +441,17 @@ export default function DispatchResourcesTab() {
       await loadResources()
       setDriverForm(emptyDriverForm())
       setShowDriverForm(false)
-      alert(driverForm.mode === 'create' ? 'Driver created' : 'Driver updated')
+      toast(driverForm.mode === 'create' ? 'Driver created' : 'Driver updated', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Cannot save driver')
+      toast(error instanceof Error ? error.message : 'Cannot save driver', 'error')
     } finally {
       setSavingDriver(false)
     }
   }
 
   async function deleteVehicle(item: VehicleRecord) {
-    const ok = window.confirm(`Delete vehicle ${item.plate_number}?`)
+    const ok = await confirm(`Delete vehicle ${item.plate_number}?`)
     if (!ok) return
 
     try {
@@ -477,17 +479,17 @@ export default function DispatchResourcesTab() {
       }
 
       await loadResources()
-      alert('Vehicle deleted')
+      toast('Vehicle deleted', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Cannot delete vehicle')
+      toast(error instanceof Error ? error.message : 'Cannot delete vehicle', 'error')
     } finally {
       setDeletingVehicleId(null)
     }
   }
 
   async function deleteDriver(item: DriverRecord) {
-    const ok = window.confirm(`Delete driver ${item.full_name}?`)
+    const ok = await confirm(`Delete driver ${item.full_name}?`)
     if (!ok) return
 
     try {
@@ -515,10 +517,10 @@ export default function DispatchResourcesTab() {
       }
 
       await loadResources()
-      alert('Driver deleted')
+      toast('Driver deleted', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Cannot delete driver')
+      toast(error instanceof Error ? error.message : 'Cannot delete driver', 'error')
     } finally {
       setDeletingDriverId(null)
     }
@@ -550,7 +552,7 @@ export default function DispatchResourcesTab() {
     try {
       if (resourceType === 'vehicle') {
         if (vehicleCsvRows.length === 0) {
-          alert('No vehicle CSV data to import')
+          toast('No vehicle CSV data to import', 'warning')
           return
         }
 
@@ -585,7 +587,7 @@ export default function DispatchResourcesTab() {
       }
 
       if (driverCsvRows.length === 0) {
-        alert('No driver CSV data to import')
+        toast('No driver CSV data to import', 'warning')
         return
       }
 
@@ -618,7 +620,7 @@ export default function DispatchResourcesTab() {
       await loadResources()
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'CSV import failed')
+      toast(error instanceof Error ? error.message : 'CSV import failed', 'error')
     } finally {
       setImportingVehicleCsv(false)
       setImportingDriverCsv(false)
@@ -627,7 +629,7 @@ export default function DispatchResourcesTab() {
 
   function exportVehiclesCsv() {
     if (vehicles.length === 0) {
-      alert('No vehicles to export')
+      toast('No vehicles to export', 'warning')
       return
     }
 
@@ -637,7 +639,7 @@ export default function DispatchResourcesTab() {
 
   function exportDriversCsv() {
     if (drivers.length === 0) {
-      alert('No drivers to export')
+      toast('No drivers to export', 'warning')
       return
     }
 

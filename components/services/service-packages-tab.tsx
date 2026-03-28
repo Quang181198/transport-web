@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useDialog } from '@/lib/dialog-context'
 
 type ServicePackageListItem = {
   id: string
@@ -111,6 +112,7 @@ function createEmptyForm(): ServicePackagePayload {
 }
 
 export default function ServicePackagesTab() {
+  const { toast, confirm } = useDialog()
   const [list, setList] = useState<ServicePackageListItem[]>([])
   const [loadingList, setLoadingList] = useState(true)
   const [listError, setListError] = useState('')
@@ -396,7 +398,7 @@ export default function ServicePackagesTab() {
   async function savePackage() {
     const validationError = validateForm()
     if (validationError) {
-      alert(validationError)
+      toast(validationError, 'warning')
       return
     }
 
@@ -443,10 +445,10 @@ export default function ServicePackagesTab() {
       setEditingId(null)
       setForm(createEmptyForm())
       await reloadListAndDetail(nextId)
-      alert(saveMode === 'create' ? 'Đã tạo gói dịch vụ' : 'Đã cập nhật gói dịch vụ')
+      toast(saveMode === 'create' ? 'Đã tạo gói dịch vụ' : 'Đã cập nhật gói dịch vụ', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Không thể lưu gói dịch vụ')
+      toast(error instanceof Error ? error.message : 'Không thể lưu gói dịch vụ', 'error')
     } finally {
       setSaving(false)
     }
@@ -454,11 +456,11 @@ export default function ServicePackagesTab() {
 
   async function deletePackage() {
     if (!detail?.id) {
-      alert('Chưa chọn gói dịch vụ để xóa')
+      toast('Chưa chọn gói dịch vụ để xóa', 'warning')
       return
     }
 
-    const ok = window.confirm(`Xóa gói dịch vụ ${detail.name}?`)
+    const ok = await confirm(`Xóa gói dịch vụ ${detail.name}?`)
     if (!ok) return
 
     try {
@@ -479,10 +481,10 @@ export default function ServicePackagesTab() {
       setForm(createEmptyForm())
       setEditingId(null)
       await reloadListAndDetail(null)
-      alert('Đã xóa gói dịch vụ')
+      toast('Đã xóa gói dịch vụ', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Không thể xóa gói dịch vụ')
+      toast(error instanceof Error ? error.message : 'Không thể xóa gói dịch vụ', 'error')
     } finally {
       setDeleting(false)
     }

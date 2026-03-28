@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useDialog } from '@/lib/dialog-context'
 import ItineraryLegsTable, {
   Leg,
 } from '@/components/bookings/itinerary-legs-table'
@@ -237,6 +238,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
   const [deleting, setDeleting] = useState(false)
   const [preliminaryPdfLoading, setPreliminaryPdfLoading] = useState(false)
   const [finalPdfLoading, setFinalPdfLoading] = useState(false)
+  const { toast, confirm } = useDialog()
   const [searchInput, setSearchInput] = useState('')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -416,7 +418,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
         setIsEditing(false)
       } catch (error) {
         console.error(error)
-        alert(error instanceof Error ? error.message : 'Không thể tải booking')
+      toast(error instanceof Error ? error.message : 'Không thể tải booking', 'error')
       } finally {
         setLoadingDetail(false)
       }
@@ -564,7 +566,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
   async function saveBooking(options?: { silent?: boolean }) {
     const validationError = validateBeforeSave()
     if (validationError) {
-      alert(validationError)
+      toast(validationError, 'warning')
       return false
     }
 
@@ -589,13 +591,13 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
       setIsEditing(false)
 
       if (!options?.silent) {
-        alert('Đã cập nhật booking thành công')
+        toast('Đã cập nhật booking thành công', 'success')
       }
 
       return true
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Cập nhật booking thất bại')
+      toast(error instanceof Error ? error.message : 'Cập nhật booking thất bại', 'error')
       return false
     } finally {
       setSaving(false)
@@ -604,7 +606,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
 
   async function openPreliminaryQuotationPdf() {
     if (!detail.id) {
-      alert('Chưa chọn booking để xuất báo giá sơ bộ')
+      toast('Chưa chọn booking để xuất báo giá sơ bộ', 'warning')
       return
     }
 
@@ -638,7 +640,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
       }
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Không thể xuất báo giá sơ bộ')
+      toast(error instanceof Error ? error.message : 'Không thể xuất báo giá sơ bộ', 'error')
     } finally {
       setPreliminaryPdfLoading(false)
     }
@@ -646,7 +648,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
 
   async function openFinalInvoicePdf() {
     if (!detail.assignmentId) {
-      alert('Booking này chưa có assignment để xuất hóa đơn final')
+      toast('Booking này chưa có assignment để xuất hóa đơn final', 'warning')
       return
     }
 
@@ -668,7 +670,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
       }
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Không thể xuất hóa đơn final')
+      toast(error instanceof Error ? error.message : 'Không thể xuất hóa đơn final', 'error')
     } finally {
       setFinalPdfLoading(false)
     }
@@ -676,11 +678,11 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
 
   async function deleteBooking() {
     if (!detail.id) {
-      alert('Chưa chọn booking để xóa')
+      toast('Chưa chọn booking để xóa', 'warning')
       return
     }
 
-    const ok = window.confirm(
+    const ok = await confirm(
       `Xóa booking gốc ${detail.bookingCode}? Hệ thống sẽ xóa luôn itinerary, assignment, quotation và file PDF.`,
     )
     if (!ok) return
@@ -710,10 +712,10 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
         await reloadCurrentPage()
       }
 
-      alert('Đã xóa booking gốc và toàn bộ dữ liệu liên quan')
+      toast('Đã xóa booking gốc và toàn bộ dữ liệu liên quan', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Xóa booking thất bại')
+      toast(error instanceof Error ? error.message : 'Xóa booking thất bại', 'error')
     } finally {
       setDeleting(false)
     }
@@ -722,7 +724,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
   function openGantt() {
     const targetMonth = detail.startDate?.slice(0, 7) || detail.endDate?.slice(0, 7)
     if (!targetMonth) {
-      alert('Booking chưa có ngày để mở đúng tháng trên Gantt')
+      toast('Booking chưa có ngày để mở đúng tháng trên Gantt', 'warning')
       return
     }
 

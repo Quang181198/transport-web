@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { type DatabaseProfile, type UserRole, getRoleLabel } from '@/lib/types/auth'
+import { useDialog } from '@/lib/dialog-context'
 
 type UserFormPayload = {
   mode: 'create' | 'update'
@@ -13,6 +14,7 @@ type UserFormPayload = {
 }
 
 export default function UsersManagementTab() {
+  const { toast, confirm } = useDialog()
   const [users, setUsers] = useState<DatabaseProfile[]>([])
   const [loading, setLoading] = useState(true)
   const [errorText, setErrorText] = useState('')
@@ -113,10 +115,10 @@ export default function UsersManagementTab() {
 
       await loadUsers()
       setFormConfig(null)
-      alert(formConfig.mode === 'create' ? 'User created successfully' : 'User updated successfully')
+      toast(formConfig.mode === 'create' ? 'User created successfully' : 'User updated successfully', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Cannot update user')
+      toast(error instanceof Error ? error.message : 'Cannot update user', 'error')
     } finally {
       setSaving(false)
     }
@@ -235,8 +237,8 @@ export default function UsersManagementTab() {
                         className="btn btn-secondary"
                         style={{ maxWidth: 220 }}
                         onClick={async () => {
-                          const confirm = window.confirm('Hệ thống sẽ gửi email đặt lại mật khẩu đến ' + formConfig.email + '. Tiếp tục?')
-                          if (!confirm) return
+                          const ok = await confirm('Hệ thống sẽ gửi email đặt lại mật khẩu đến ' + formConfig.email + '. Tiếp tục?')
+                          if (!ok) return
                           try {
                             const res = await fetch('/api/users/reset-password', {
                               method: 'POST',
@@ -244,9 +246,9 @@ export default function UsersManagementTab() {
                               body: JSON.stringify({ email: formConfig.email }),
                             })
                             if (!res.ok) throw new Error('Cannot send reset email')
-                            alert('Đã gửi email khôi phục mật khẩu thành công!')
+                            toast('Đã gửi email khôi phục mật khẩu thành công!', 'success')
                           } catch (e) {
-                            alert('Gửi email thất bại: ' + (e as Error).message)
+                            toast('Gửi email thất bại: ' + (e as Error).message, 'error')
                           }
                         }}
                       >

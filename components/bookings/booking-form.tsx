@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDialog } from '@/lib/dialog-context'
 import ItineraryLegsTable, { Leg } from './itinerary-legs-table'
 import { formatVND, parseVND } from '@/components/utils/currency'
 import type {
@@ -218,6 +219,7 @@ function DatePickerDisplay({
 }
 
 export default function BookingForm() {
+  const { toast } = useDialog()
   const [bookingCode, setBookingCode] = useState('')
   const [groupName, setGroupName] = useState('')
   const [email, setEmail] = useState('')
@@ -515,7 +517,7 @@ export default function BookingForm() {
 
   async function applyServiceTemplate() {
     if (!selectedServicePackageDetail) {
-      alert('Vui lòng chọn gói dịch vụ trước khi áp dụng lịch trình mẫu')
+      toast('Vui lòng chọn gói dịch vụ trước khi áp dụng lịch trình mẫu', 'warning')
       return
     }
 
@@ -571,13 +573,14 @@ export default function BookingForm() {
         window.open(quotationData.url, '_blank', 'noopener,noreferrer')
       }
 
-      alert('Đã xuất báo giá sơ bộ thành công')
+      toast('Đã xuất báo giá sơ bộ thành công', 'success')
     } catch (error) {
       console.error(error)
-      alert(
+      toast(
         error instanceof Error
           ? error.message
           : 'Tạo PDF thất bại. Kiểm tra terminal và thử lại.',
+        'error',
       )
     } finally {
       setPdfLoading(false)
@@ -590,10 +593,10 @@ export default function BookingForm() {
     try {
       setSaving(true)
       await saveBooking()
-      alert('Đã lưu booking vào Supabase thành công')
+      toast('Đã lưu booking vào Supabase thành công', 'success')
     } catch (error) {
       console.error(error)
-      alert(error instanceof Error ? error.message : 'Lưu booking thất bại')
+      toast(error instanceof Error ? error.message : 'Lưu booking thất bại', 'error')
     } finally {
       setSaving(false)
     }
