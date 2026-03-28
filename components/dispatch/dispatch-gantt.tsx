@@ -121,6 +121,61 @@ function parseDateTime(value?: string | null) {
   return date
 }
 
+function isValidIsoDate(value?: string | null) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
+
+  const [year, month, day] = value.split('-').map(Number)
+  const date = new Date(`${value}T00:00:00`)
+
+  return (
+    !Number.isNaN(date.getTime()) &&
+    date.getFullYear() === year &&
+    date.getMonth() + 1 === month &&
+    date.getDate() === day
+  )
+}
+
+function isValidIsoDateTime(value?: string | null) {
+  if (!value) return false
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return false
+
+  const normalized = value.trim()
+  if (!normalized.includes('T')) return false
+
+  const [datePart] = normalized.split('T')
+  return isValidIsoDate(datePart)
+}
+
+function getSafeAssignmentStart(item: AssignmentSummary) {
+  if (isValidIsoDateTime(item.start_datetime)) {
+    return item.start_datetime as string
+  }
+
+  if (isValidIsoDate(item.start_date)) {
+    return `${item.start_date}T00:00:00`
+  }
+
+  return null
+}
+
+function getSafeAssignmentEnd(item: AssignmentSummary) {
+  if (isValidIsoDateTime(item.end_datetime)) {
+    return item.end_datetime as string
+  }
+
+  if (isValidIsoDate(item.end_date)) {
+    return `${item.end_date}T23:59:59`
+  }
+
+  if (isValidIsoDate(item.start_date)) {
+    return `${item.start_date}T23:59:59`
+  }
+
+  return null
+}
+
 function overlaps(
   aStart?: string | null,
   aEnd?: string | null,
@@ -425,13 +480,13 @@ export default function DispatchGantt({ month }: { month: string }) {
 
     const withPreview = data.map((item) => {
       const preview = previewMap.get(item.id)
+      const safeStart = getSafeAssignmentStart(item)
+      const safeEnd = getSafeAssignmentEnd(item)
+
       return {
         ...item,
-        _start: preview?.start || item.start_datetime || `${item.start_date}T00:00:00`,
-        _end:
-          preview?.end ||
-          item.end_datetime ||
-          `${item.end_date || item.start_date}T23:59:59`,
+        _start: preview?.start || safeStart,
+        _end: preview?.end || safeEnd,
       }
     })
 
@@ -509,8 +564,13 @@ export default function DispatchGantt({ month }: { month: string }) {
       return empty
     }
 
-    const selectedStart = selected.start_datetime
-    const selectedEnd = selected.end_datetime
+    const selectedStart = isValidIsoDateTime(selected.start_datetime)
+      ? selected.start_datetime
+      : null
+
+    const selectedEnd = isValidIsoDateTime(selected.end_datetime)
+      ? selected.end_datetime
+      : null
 
     if (!selectedStart || !selectedEnd) {
       const matchingAvailableVehicles = vehicles.filter(
@@ -1026,12 +1086,62 @@ const canDragAssignment = useCallback(
             </div>
 
             {data.map((item, rowIndex) => {
-              const preview = previewMap.get(item.id)
-              const start = preview?.start || item.start_datetime || `${item.start_date}T00:00:00`
-              const end =
-                preview?.end || item.end_datetime || `${item.end_date || item.start_date}T23:59:59`
+const preview = previewMap.get(item.id)
+const safeStart = getSafeAssignmentStart(item)
+const safeEnd = getSafeAssignmentEnd(item)
 
-              const { left, width } = getClampedLayout(start, end, month, dayColumnWidth)
+const start = preview?.start || safeStart
+const end = preview?.end || safeEnd
+
+if (!start || !end) {
+  return (
+    <div
+      key={item.id}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `${leftColumnWidth}px 1fr`,
+        minHeight: rowHeight,
+        borderBottom: '1px solid #e7eef6',
+      }}
+    >
+      <div
+        style={{
+          position: 'sticky',
+          left: 0,
+          zIndex: 6,
+          padding: '10px',
+          borderRight: '1px solid #d8e4f0',
+          background: rowIndex % 2 === 0 ? '#ffffff' : '#fbfdff',
+          display: 'flex',
+          alignItems: 'center',
+          fontWeight: 700,
+          color: '#163a63',
+          boxShadow: '6px 0 10px rgba(15, 23, 42, 0.04)',
+        }}
+      >
+        {item.booking_code}
+      </div>
+
+      <div
+        style={{
+          position: 'relative',
+          background: rowIndex % 2 === 0 ? '#ffffff' : '#fbfdff',
+          minHeight: rowHeight,
+          display: 'flex',
+          alignItems: 'center',
+          padding: '0 12px',
+          color: '#dc2626',
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+      >
+        Dữ liệu ngày không hợp lệ
+      </div>
+    </div>
+  )
+}
+
+const { left, width } = getClampedLayout(start, end, month, dayColumnWidth)
               const barColor = getVehicleTypeColor(item.vehicle_type)
               const label = `${item.vehicle_assigned || 'Chưa gán xe'} | ${item.driver_assigned || 'Chưa gán lái xe'}`
               const conflictInfo = conflictMap.get(item.id)

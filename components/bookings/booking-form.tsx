@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import ItineraryLegsTable, { Leg } from './itinerary-legs-table'
 import { formatVND, parseVND } from '@/components/utils/currency'
 import type {
@@ -54,22 +54,6 @@ function formatDateVN(value: string) {
 
   const [, year, month, day] = match
   return `${day}/${month}/${year}`
-}
-
-function parseDateVN(value: string) {
-  if (!value) return ''
-
-  const trimmed = value.trim()
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return trimmed
-  }
-
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed)
-  if (!match) return ''
-
-  const [, day, month, year] = match
-  return `${year}-${month}-${day}`
 }
 
 function getTimeOptions() {
@@ -179,6 +163,60 @@ function buildPayload(input: {
   }
 }
 
+function DatePickerDisplay({
+  value,
+  onChange,
+  placeholder = 'dd/mm/yyyy',
+}: {
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  function openPicker() {
+    if (!inputRef.current) return
+
+    if (typeof inputRef.current.showPicker === 'function') {
+      inputRef.current.showPicker()
+      return
+    }
+
+    inputRef.current.focus()
+    inputRef.current.click()
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        className="input"
+        value={formatDateVN(value)}
+        readOnly
+        placeholder={placeholder}
+        onClick={openPicker}
+      />
+
+      <input
+        ref={inputRef}
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: 'none',
+          bottom: 0,
+          left: 0,
+        }}
+      />
+    </div>
+  )
+}
+
 export default function BookingForm() {
   const [bookingCode, setBookingCode] = useState('')
   const [groupName, setGroupName] = useState('')
@@ -191,8 +229,6 @@ export default function BookingForm() {
   const [startTime, setStartTime] = useState('')
   const [endTime, setEndTime] = useState('')
 
-  const [startDateInput, setStartDateInput] = useState('')
-  const [endDateInput, setEndDateInput] = useState('')
   const [pickupLocation, setPickupLocation] = useState('')
   const [dropoffLocation, setDropoffLocation] = useState('')
   const [unitPrice, setUnitPrice] = useState(0)
@@ -362,32 +398,6 @@ export default function BookingForm() {
 
   function markDirty() {
     setHasUnsavedChanges(true)
-  }
-
-  function resetForm() {
-    setBookingCode('')
-    setGroupName('')
-    setEmail('')
-    setPhone('')
-    setPassengerCount(0)
-    setVehicleType('16')
-    setStartDate('')
-    setEndDate('')
-    setStartTime('')
-    setEndTime('')
-    setStartDateInput('')
-    setEndDateInput('')
-    setPickupLocation('')
-    setDropoffLocation('')
-    setUnitPrice(0)
-    setUnitPriceInput('')
-    setNotes('')
-    setBookingSource('direct')
-    setPartnerCompanyId('')
-    setSelectedServicePackageId('')
-    setSelectedServicePackageDetail(null)
-    setLegs([createEmptyLeg(1)])
-    setHasUnsavedChanges(false)
   }
 
   function validateBeforeSave() {
@@ -561,10 +571,7 @@ export default function BookingForm() {
         window.open(quotationData.url, '_blank', 'noopener,noreferrer')
       }
 
-      alert('Đã lưu booking và xuất báo giá sơ bộ thành công')
-      resetForm()
-      setLastSavedBookingId(null)
-      setLastSavedAssignmentId(null)
+      alert('Đã xuất báo giá sơ bộ thành công')
     } catch (error) {
       console.error(error)
       alert(
@@ -584,7 +591,6 @@ export default function BookingForm() {
       setSaving(true)
       await saveBooking()
       alert('Đã lưu booking vào Supabase thành công')
-      resetForm()
     } catch (error) {
       console.error(error)
       alert(error instanceof Error ? error.message : 'Lưu booking thất bại')
@@ -732,28 +738,11 @@ export default function BookingForm() {
 
         <div className="field">
           <label className="label">Ngày khởi hành</label>
-          <input
-            className="input"
-            type="text"
-            placeholder="dd/mm/yyyy"
-            value={startDateInput}
-            onFocus={() => {
-              setStartDateInput(startDate || '')
-            }}
-            onChange={(e) => {
-              const raw = e.target.value
-              setStartDateInput(raw)
+          <DatePickerDisplay
+            value={startDate}
+            onChange={(value) => {
+              setStartDate(value)
               markDirty()
-
-              const parsed = parseDateVN(raw)
-              if (parsed) {
-                setStartDate(parsed)
-              } else if (raw.trim() === '') {
-                setStartDate('')
-              }
-            }}
-            onBlur={() => {
-              setStartDateInput(formatDateVN(startDate))
             }}
           />
         </div>
@@ -779,28 +768,11 @@ export default function BookingForm() {
 
         <div className="field">
           <label className="label">Ngày kết thúc</label>
-          <input
-            className="input"
-            type="text"
-            placeholder="dd/mm/yyyy"
-            value={endDateInput}
-            onFocus={() => {
-              setEndDateInput(endDate || '')
-            }}
-            onChange={(e) => {
-              const raw = e.target.value
-              setEndDateInput(raw)
+          <DatePickerDisplay
+            value={endDate}
+            onChange={(value) => {
+              setEndDate(value)
               markDirty()
-
-              const parsed = parseDateVN(raw)
-              if (parsed) {
-                setEndDate(parsed)
-              } else if (raw.trim() === '') {
-                setEndDate('')
-              }
-            }}
-            onBlur={() => {
-              setEndDateInput(formatDateVN(endDate))
             }}
           />
         </div>

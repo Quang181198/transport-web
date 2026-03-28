@@ -34,8 +34,10 @@ function getMonthRange(month: string) {
   const lastDate = `${month}-${String(lastDay).padStart(2, '0')}`
 
   return {
-    firstDate: `${firstDate}T00:00:00`,
-    lastDate: `${lastDate}T23:59:59`,
+    firstDate,
+    lastDate,
+    firstDateTime: `${firstDate}T00:00:00`,
+    lastDateTime: `${lastDate}T23:59:59`,
   }
 }
 
@@ -63,7 +65,7 @@ export async function GET(req: Request) {
       )
     }
 
-    const { firstDate, lastDate } = getMonthRange(month)
+    const { firstDate, lastDate, firstDateTime, lastDateTime } = getMonthRange(month)
     const supabase = createClient()
 
     const { data, error } = await supabase
@@ -72,7 +74,7 @@ export async function GET(req: Request) {
         'id, booking_id, booking_code, group_name, start_date, end_date, start_datetime, end_datetime, vehicle_type, vehicle_id, driver_id, vehicle_assigned, driver_assigned, status',
       )
       .or(
-        `and(start_datetime.lte.${lastDate},end_datetime.gte.${firstDate}),and(start_datetime.is.null,start_date.lte.${month}-31,end_date.gte.${month}-01)`,
+        `and(start_datetime.lte.${lastDateTime},end_datetime.gte.${firstDateTime}),and(start_datetime.is.null,start_date.lte.${lastDate},end_date.gte.${firstDate})`,
       )
       .order('start_datetime', { ascending: true })
       .order('start_date', { ascending: true })

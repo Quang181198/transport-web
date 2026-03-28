@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { formatVND, parseVND } from '@/components/utils/currency'
 import type { BookingLegInput } from '../../lib/types/transport'
 
@@ -12,22 +12,6 @@ function formatDateVN(value: string) {
 
   const [, year, month, day] = match
   return `${day}/${month}/${year}`
-}
-
-function parseDateVN(value: string) {
-  if (!value) return ''
-
-  const trimmed = value.trim()
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return trimmed
-  }
-
-  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed)
-  if (!match) return ''
-
-  const [, day, month, year] = match
-  return `${year}-${month}-${day}`
 }
 
 function getTimeOptions() {
@@ -64,10 +48,61 @@ function createEmptyLeg(seqNo: number): Leg {
   }
 }
 
+function DatePickerCell({
+  value,
+  onChange,
+}: {
+  value: string
+  onChange: (value: string) => void
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+
+  function openPicker() {
+    if (!inputRef.current) return
+
+    if (typeof inputRef.current.showPicker === 'function') {
+      inputRef.current.showPicker()
+      return
+    }
+
+    inputRef.current.focus()
+    inputRef.current.click()
+  }
+
+  return (
+    <div style={{ position: 'relative' }}>
+      <input
+        className="input"
+        value={formatDateVN(value)}
+        readOnly
+        placeholder="dd/mm/yyyy"
+        onClick={openPicker}
+      />
+
+      <input
+        ref={inputRef}
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          width: 1,
+          height: 1,
+          opacity: 0,
+          pointerEvents: 'none',
+          bottom: 0,
+          left: 0,
+        }}
+      />
+    </div>
+  )
+}
+
 export default function ItineraryLegsTable({ legs, onChange }: Props) {
   const [editingExtraIndex, setEditingExtraIndex] = useState<number | null>(null)
   const [extraDrafts, setExtraDrafts] = useState<Record<number, string>>({})
-  const [dateDrafts, setDateDrafts] = useState<Record<number, string>>({})
   const timeOptions = getTimeOptions()
 
   function update(index: number, key: keyof Leg, value: string | number) {
@@ -91,12 +126,6 @@ export default function ItineraryLegsTable({ legs, onChange }: Props) {
     onChange(next.length > 0 ? next : [createEmptyLeg(1)])
 
     setExtraDrafts((prev) => {
-      const copied = { ...prev }
-      delete copied[index]
-      return copied
-    })
-
-    setDateDrafts((prev) => {
       const copied = { ...prev }
       delete copied[index]
       return copied
@@ -135,42 +164,9 @@ export default function ItineraryLegsTable({ legs, onChange }: Props) {
                 <td>{leg.seqNo}</td>
 
                 <td>
-                  <input
-                    className="input"
-                    type="text"
-                    placeholder="dd/mm/yyyy"
-                    value={
-                      dateDrafts[i] !== undefined
-                        ? dateDrafts[i]
-                        : formatDateVN(leg.tripDate)
-                    }
-                    onFocus={() => {
-                      setDateDrafts((prev) => ({
-                        ...prev,
-                        [i]: leg.tripDate || '',
-                      }))
-                    }}
-                    onChange={(e) => {
-                      const raw = e.target.value
-
-                      setDateDrafts((prev) => ({
-                        ...prev,
-                        [i]: raw,
-                      }))
-
-                      const parsed = parseDateVN(raw)
-                      if (parsed) {
-                        update(i, 'tripDate', parsed)
-                      } else if (raw.trim() === '') {
-                        update(i, 'tripDate', '')
-                      }
-                    }}
-                    onBlur={() => {
-                      setDateDrafts((prev) => ({
-                        ...prev,
-                        [i]: formatDateVN(leg.tripDate),
-                      }))
-                    }}
+                  <DatePickerCell
+                    value={leg.tripDate}
+                    onChange={(value) => update(i, 'tripDate', value)}
                   />
                 </td>
 
