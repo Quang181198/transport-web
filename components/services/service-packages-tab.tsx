@@ -62,6 +62,18 @@ function getCategoryLabel(value?: string | null) {
   return found?.label || value || 'Chưa phân loại'
 }
 
+function getTimeOptions() {
+  const options: string[] = []
+  for (let hour = 0; hour < 24; hour += 1) {
+    for (let minute = 0; minute < 60; minute += 30) {
+      options.push(
+        `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
+      )
+    }
+  }
+  return options
+}
+
 function getVehicleTypeLabel(vehicleType?: string | null) {
   switch ((vehicleType || '').trim()) {
     case '4':
@@ -129,6 +141,7 @@ export default function ServicePackagesTab() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const timeOptions = useMemo(() => getTimeOptions(), [])
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -853,20 +866,34 @@ export default function ServicePackagesTab() {
                             />
                           </td>
                           <td>
-                            <input
-                              className="input"
+                            <select
+                              className="select"
+                              style={{ minWidth: 100 }}
                               value={leg.pickupTime}
                               onChange={(e) => updateLeg(index, 'pickupTime', e.target.value)}
-                              placeholder="07:00"
-                            />
+                            >
+                              <option value="">-- Giờ đón --</option>
+                              {timeOptions.map((time) => (
+                                <option key={`pickup-${time}`} value={time}>
+                                  {time}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td>
-                            <input
-                              className="input"
+                            <select
+                              className="select"
+                              style={{ minWidth: 100 }}
                               value={leg.dropoffTime}
                               onChange={(e) => updateLeg(index, 'dropoffTime', e.target.value)}
-                              placeholder="17:00"
-                            />
+                            >
+                              <option value="">-- Giờ trả --</option>
+                              {timeOptions.map((time) => (
+                                <option key={`dropoff-${time}`} value={time}>
+                                  {time}
+                                </option>
+                              ))}
+                            </select>
                           </td>
                           <td>
                             <input
