@@ -1,14 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import CompanyLogo from './company-logo'
 import { getCurrentSessionProfile, signOutUser } from '@/lib/auth/session'
 import {
+  canAccessMenu,
   getRoleLabel,
   type AppMenuKey,
   type SessionProfile,
+  type UserRole,
 } from '@/lib/types/auth'
 
 type Props = {
@@ -23,6 +25,7 @@ const navItems: Array<{
   label: string
   icon: string
   key: AppMenuKey
+  roles?: UserRole[]
 }> = [
   { href: '/dashboard', label: 'Dashboard', icon: '🏠', key: 'dashboard' },
   { href: '/bookings/new', label: 'New Booking', icon: '📝', key: 'bookings' },
@@ -31,6 +34,7 @@ const navItems: Array<{
   { href: '/services', label: 'Services', icon: '🧭', key: 'dispatch' },
   { href: '/accounting', label: 'Accounting', icon: '📊', key: 'accounting' },
   { href: '/users', label: 'Users', icon: '👥', key: 'users' },
+  { href: '/settings', label: 'Settings', icon: '⚙️', key: 'settings', roles: ['admin'] },
 ]
 
 export default function AppShell({
@@ -73,28 +77,40 @@ export default function AppShell({
     }
   }
 
+  const companyShortName =
+    process.env.NEXT_PUBLIC_COMPANY_SHORT_NAME ||
+    process.env.NEXT_PUBLIC_COMPANY_NAME ||
+    'Transport'
+  const appName = process.env.NEXT_PUBLIC_APP_NAME || 'Management System'
+
   return (
     <div className="page-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
           <CompanyLogo />
           <div className="sidebar-brand-text">
-            <h1>HD Transport</h1>
-            <p>Management System</p>
+            <h1>{companyShortName}</h1>
+            <p>{appName}</p>
           </div>
         </div>
 
         <nav className="nav-group">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-item ${activeMenu === item.key ? 'active' : ''}`}
-            >
-              <strong>{item.icon}</strong>
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {navItems
+            .filter(
+              (item) =>
+                !item.roles ||
+                (profile && canAccessMenu(profile.role, item.key)),
+            )
+            .map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`nav-item ${activeMenu === item.key ? 'active' : ''}`}
+              >
+                <strong>{item.icon}</strong>
+                <span>{item.label}</span>
+              </Link>
+            ))}
         </nav>
       </aside>
 
@@ -102,7 +118,7 @@ export default function AppShell({
         <header className="topbar">
           <div className="topbar-title">
             <h2>{title}</h2>
-            <p>{subtitle || 'Internal transport management system'}</p>
+            <p>{subtitle || process.env.NEXT_PUBLIC_APP_DESCRIPTION || ''}</p>
           </div>
 
           <div className="topbar-right">

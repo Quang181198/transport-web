@@ -27,6 +27,7 @@ export type AppMenuKey =
   | 'dispatch'
   | 'accounting'
   | 'users'
+  | 'settings'
 
 const ROLE_LABELS: Record<UserRole, string> = {
   admin: 'Admin',
@@ -46,6 +47,8 @@ const MENU_ACCESS: Record<AppMenuKey, UserRole[]> = {
   accounting: ['admin', 'manager', 'accountant'],
 
   users: ['admin'],
+
+  settings: ['admin'],
 }
 
 export function isUserRole(value: string): value is UserRole {
@@ -86,6 +89,10 @@ export function canAccessPath(role: UserRole, path: string) {
 
   if (path.startsWith('/users')) {
     return canAccessMenu(role, 'users')
+  }
+
+  if (path.startsWith('/settings')) {
+    return canAccessMenu(role, 'settings')
   }
 
   return false

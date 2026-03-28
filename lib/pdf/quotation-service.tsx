@@ -6,7 +6,7 @@ import type {
   ItineraryLegRecord,
   QuotationPayload,
 } from '../types/transport'
-import { COMPANY_INFO } from './company-info'
+import { getCompanyInfo } from '../settings/get-company-info'
 import {
   fileToDataUri,
   registerPdfFontsOnce,
@@ -145,12 +145,13 @@ async function generateAndStorePdf(options: {
   const { booking, payload, variant, assignmentId } = options
 
   const supabase = createClient()
+  const companyInfo = await getCompanyInfo()
   const useVietnameseFont = await registerPdfFontsOnce()
   const logoSrc = await fileToDataUri('logo-company.png')
 
   const stream = await renderToStream(
     <QuotationPdfDocument
-      company={COMPANY_INFO}
+      company={companyInfo}
       booking={payload}
       logoSrc={logoSrc}
       useVietnameseFont={useVietnameseFont}
