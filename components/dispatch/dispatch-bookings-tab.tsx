@@ -1491,7 +1491,9 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
                   <button
                     type="button"
                     className="btn btn-primary"
-                    onClick={saveBooking}
+                    onClick={() => {
+                      void saveBooking()
+                    }}
                     disabled={saving}
                   >
                     {saving ? 'Đang cập nhật...' : 'Lưu cập nhật'}
