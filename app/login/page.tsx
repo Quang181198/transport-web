@@ -152,17 +152,20 @@ function LoginForm() {
               fontSize: 13,
               color: '#64748b',
               lineHeight: 1.5,
+              background: '#f8fafc',
+              padding: 12,
+              borderRadius: 8,
+              border: '1px solid #e2e8f0'
             }}
           >
-            Example accounts:
-            <br />
-            admin.hdtransport@gmail.com
-            <br />
-            director.hdtransport@gmail.com
-            <br />
-            sale.hdtransport@gmail.com
-            <br />
-            accounting.hdtransport@gmail.com
+            <div style={{ display: 'grid', gridTemplateColumns: 'min-content 1fr', gap: '6px 10px', whiteSpace: 'nowrap' }}>
+              <span style={{ fontWeight: 600, color: '#0f172a' }}>Admin:</span> <span>admin.hdtransport@gmail.com</span>
+              <span style={{ fontWeight: 600, color: '#0f172a' }}>Manager:</span> <span>hdtransporttravel@gmail.com</span>
+              <span style={{ fontWeight: 600, color: '#0f172a' }}>Manager:</span> <span>manager.hdtransport@gmail.com</span>
+              <span style={{ fontWeight: 600, color: '#0f172a' }}>Sales:</span> <span>sales.hdtransport@gmail.com</span>
+              <span style={{ fontWeight: 600, color: '#0f172a' }}>Operator:</span> <span>operator.hdtransport@gmail.com</span>
+              <span style={{ fontWeight: 600, color: '#0f172a' }}>Accountant:</span> <span>accountant.hdtransport@gmail.com</span>
+            </div>
           </div>
 
           <div className="login-actions">

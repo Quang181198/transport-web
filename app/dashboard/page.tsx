@@ -54,7 +54,9 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       icon: '🚐',
       accent: 'linear-gradient(135deg, #f7fcfa 0%, #eef8f3 100%)',
     })
+  }
 
+  if (profile && ['admin', 'manager', 'operator'].includes(profile.role)) {
     items.push({
       href: '/resources',
       title: 'Resources',
@@ -85,6 +87,16 @@ function buildQuickActions(profile: SessionProfile | null): QuickAction[] {
       description: 'Theo dõi tài chính, báo cáo và dữ liệu đối tác.',
       icon: '📊',
       accent: 'linear-gradient(135deg, #fbfaff 0%, #f4f0ff 100%)',
+    })
+  }
+
+  if (profile && canAccessMenu(profile.role, 'users')) {
+    items.push({
+      href: '/users',
+      title: 'User Management',
+      description: 'Quản lý tài khoản, bảo mật phân quyền và thư mời.',
+      icon: '👥',
+      accent: 'linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%)',
     })
   }
 

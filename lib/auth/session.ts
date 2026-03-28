@@ -36,11 +36,7 @@ export async function getCurrentSessionProfile(): Promise<SessionProfile | null>
     error: userError,
   } = await supabase.auth.getUser()
 
-  if (userError) {
-    throw new Error(userError.message)
-  }
-
-  if (!user) {
+  if (userError || !user) {
     return null
   }
 

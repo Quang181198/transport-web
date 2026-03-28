@@ -30,6 +30,7 @@ const navItems: Array<{
   { href: '/resources', label: 'Resources', icon: '🧰', key: 'dispatch' },
   { href: '/services', label: 'Services', icon: '🧭', key: 'dispatch' },
   { href: '/accounting', label: 'Accounting', icon: '📊', key: 'accounting' },
+  { href: '/users', label: 'Users', icon: '👥', key: 'users' },
 ]
 
 export default function AppShell({
