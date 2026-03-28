@@ -235,7 +235,8 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
   const [loadingDetail, setLoadingDetail] = useState(false)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [pdfLoading, setPdfLoading] = useState(false)
+  const [preliminaryPdfLoading, setPreliminaryPdfLoading] = useState(false)
+  const [finalPdfLoading, setFinalPdfLoading] = useState(false)
   const [searchInput, setSearchInput] = useState('')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [isEditing, setIsEditing] = useState(false)
@@ -560,11 +561,11 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
     }
   }
 
-  async function saveBooking() {
+  async function saveBooking(options?: { silent?: boolean }) {
     const validationError = validateBeforeSave()
     if (validationError) {
       alert(validationError)
-      return
+      return false
     }
 
     try {
@@ -586,12 +587,60 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
       await reloadCurrentPage()
       setSelectedId(detail.id)
       setIsEditing(false)
-      alert('Đã cập nhật booking thành công')
+
+      if (!options?.silent) {
+        alert('Đã cập nhật booking thành công')
+      }
+
+      return true
     } catch (error) {
       console.error(error)
       alert(error instanceof Error ? error.message : 'Cập nhật booking thất bại')
+      return false
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function openPreliminaryQuotationPdf() {
+    if (!detail.id) {
+      alert('Chưa chọn booking để xuất báo giá sơ bộ')
+      return
+    }
+
+    try {
+      setPreliminaryPdfLoading(true)
+
+      if (isEditing) {
+        const saved = await saveBooking({ silent: true })
+        if (!saved) {
+          return
+        }
+      }
+
+      const res = await fetch('/api/quotation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          booking_id: detail.id,
+        }),
+      })
+      const json = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(json?.error || 'Không thể tạo báo giá sơ bộ')
+      }
+
+      if (json?.url) {
+        window.open(json.url, '_blank', 'noopener,noreferrer')
+      }
+    } catch (error) {
+      console.error(error)
+      alert(error instanceof Error ? error.message : 'Không thể xuất báo giá sơ bộ')
+    } finally {
+      setPreliminaryPdfLoading(false)
     }
   }
 
@@ -602,7 +651,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
     }
 
     try {
-      setPdfLoading(true)
+      setFinalPdfLoading(true)
 
       const method = detail.quotationPdfPath ? 'GET' : 'POST'
       const res = await fetch(`/api/assignments/${detail.assignmentId}/quotation`, {
@@ -621,7 +670,7 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
       console.error(error)
       alert(error instanceof Error ? error.message : 'Không thể xuất hóa đơn final')
     } finally {
-      setPdfLoading(false)
+      setFinalPdfLoading(false)
     }
   }
 
@@ -914,14 +963,26 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
               </div>
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={openPreliminaryQuotationPdf}
+                  disabled={preliminaryPdfLoading || saving}
+                >
+                  {preliminaryPdfLoading
+                    ? 'Đang xuất báo giá sơ bộ...'
+                    : isEditing
+                      ? 'Lưu cập nhật & xuất báo giá sơ bộ'
+                      : 'Xuất báo giá sơ bộ'}
+                </button>
 
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={openFinalInvoicePdf}
-                  disabled={pdfLoading}
+                  disabled={finalPdfLoading}
                 >
-                  {pdfLoading
+                  {finalPdfLoading
                     ? 'Đang xử lý PDF...'
                     : detail.quotationPdfPath
                       ? 'Xuất hóa đơn final'
