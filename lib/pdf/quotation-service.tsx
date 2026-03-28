@@ -261,16 +261,7 @@ export async function ensureFinalInvoicePdfByAssignment(
     throw new Error('Assignment chưa có booking_id')
   }
 
-  if (assignment.quotation_pdf_path) {
-    const url = await createSignedPdfUrl(assignment.quotation_pdf_path)
-    return {
-      success: true,
-      reused: true,
-      path: assignment.quotation_pdf_path,
-      url,
-    }
-  }
-
+  // Always regenerate with the latest booking & itinerary data
   const booking = await getBookingById(assignment.booking_id)
   const legs = await getLegsByBookingId(booking.id)
   const payload = mapQuotationPayload(booking, legs)

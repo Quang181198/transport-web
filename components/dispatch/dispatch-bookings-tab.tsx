@@ -653,9 +653,9 @@ export default function DispatchBookingsTab({ month, onOpenGanttMonth }: Props) 
     try {
       setFinalPdfLoading(true)
 
-      const method = detail.quotationPdfPath ? 'GET' : 'POST'
+      // Always POST to regenerate PDF with the latest booking & itinerary data
       const res = await fetch(`/api/assignments/${detail.assignmentId}/quotation`, {
-        method,
+        method: 'POST',
       })
       const json = await res.json().catch(() => null)
 
